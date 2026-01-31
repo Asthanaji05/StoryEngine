@@ -129,4 +129,52 @@ export class StoriesService {
         if (error) throw error;
         return data;
     }
+
+    async updateStoryElement(storyId: string, elementId: string, userId: string, updates: any) {
+        await this.getStoryById(storyId, userId);
+        const { data, error } = await this.supabase
+            .from('narrative_elements')
+            .update(updates)
+            .eq('id', elementId)
+            .eq('story_id', storyId)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteStoryElement(storyId: string, elementId: string, userId: string) {
+        await this.getStoryById(storyId, userId);
+        const { error } = await this.supabase
+            .from('narrative_elements')
+            .delete()
+            .eq('id', elementId)
+            .eq('story_id', storyId);
+        if (error) throw error;
+        return { success: true };
+    }
+
+    async updateStoryMoment(storyId: string, momentId: string, userId: string, updates: any) {
+        await this.getStoryById(storyId, userId);
+        const { data, error } = await this.supabase
+            .from('story_moments')
+            .update(updates)
+            .eq('id', momentId)
+            .eq('story_id', storyId)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+
+    async deleteStoryMoment(storyId: string, momentId: string, userId: string) {
+        await this.getStoryById(storyId, userId);
+        const { error } = await this.supabase
+            .from('story_moments')
+            .delete()
+            .eq('id', momentId)
+            .eq('story_id', storyId);
+        if (error) throw error;
+        return { success: true };
+    }
 }

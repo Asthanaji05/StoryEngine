@@ -26,4 +26,14 @@ export class SuggestionsController {
     async confirm(@Request() req, @Param('id') id: string) {
         return this.suggestionsService.confirmSuggestion(id, req.user.sub);
     }
+
+    @Post('revert/element/:elementId')
+    async revertElement(@Request() req, @Param('elementId') elementId: string) {
+        return this.suggestionsService.revertElement(elementId, req.user.sub);
+    }
+
+    @Post('revert/moment/:momentId')
+    async revertMoment(@Request() req, @Param('momentId') momentId: string) {
+        return this.suggestionsService.revertMoment(momentId, req.user.sub);
+    }
 }

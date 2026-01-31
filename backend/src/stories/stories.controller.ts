@@ -65,4 +65,42 @@ export class StoriesController {
     async getMentions(@Request() req, @Param('id') id: string) {
         return this.storiesService.getStoryMentions(id, req.user.sub);
     }
+
+    @Patch(':id/elements/:elementId')
+    async updateElement(
+        @Request() req,
+        @Param('id') id: string,
+        @Param('elementId') elementId: string,
+        @Body() updates: any,
+    ) {
+        return this.storiesService.updateStoryElement(id, elementId, req.user.sub, updates);
+    }
+
+    @Delete(':id/elements/:elementId')
+    async deleteElement(
+        @Request() req,
+        @Param('id') id: string,
+        @Param('elementId') elementId: string,
+    ) {
+        return this.storiesService.deleteStoryElement(id, elementId, req.user.sub);
+    }
+
+    @Patch(':id/timeline/:momentId')
+    async updateMoment(
+        @Request() req,
+        @Param('id') id: string,
+        @Param('momentId') momentId: string,
+        @Body() updates: any,
+    ) {
+        return this.storiesService.updateStoryMoment(id, momentId, req.user.sub, updates);
+    }
+
+    @Delete(':id/timeline/:momentId')
+    async deleteMoment(
+        @Request() req,
+        @Param('id') id: string,
+        @Param('momentId') momentId: string,
+    ) {
+        return this.storiesService.deleteStoryMoment(id, momentId, req.user.sub);
+    }
 }

@@ -191,12 +191,61 @@ export class SuggestionsService {
             }
         }
 
-        // Mark suggestion as accepted
+        // Mark suggestion as accepted and link it to the confirmed item
         await this.supabase
             .from('ai_suggestions')
-            .update({ status: 'accepted' })
+            .update({
+                status: 'accepted',
+                confirmed_item_id: resultId
+            })
             .eq('id', suggestionId);
 
         return { success: true, id: resultId };
+    }
+
+    async revertElement(elementId: string, userId: string) {
+        // 1. Find the suggestion that created this element
+        const { data: suggestion } = await this.supabase
+            .from('ai_suggestions')
+            .select('id, story_id')
+            .eq('confirmed_item_id', elementId)
+            .single();
+
+        if (!suggestion) throw new Error('No original suggestion found for this element');
+        await this.storiesService.getStoryById(suggestion.story_id, userId);
+
+        // 2. Delete the confirmed element (cascades to mentions)
+        await this.supabase.from('narrative_elements').delete().eq('id', elementId);
+
+        // 3. Revert suggestion to pending
+        await this.supabase
+            .from('ai_suggestions')
+            .update({ status: 'pending', confirmed_item_id: null })
+            .eq('id', suggestion.id);
+
+        return { success: true };
+    }
+
+    async revertMoment(momentId: string, userId: string) {
+        // 1. Find suggestion
+        const { data: suggestion } = await this.supabase
+            .from('ai_suggestions')
+            .select('id, story_id')
+            .eq('confirmed_item_id', momentId)
+            .single();
+
+        if (!suggestion) throw new Error('No original suggestion found for this moment');
+        await this.storiesService.getStoryById(suggestion.story_id, userId);
+
+        // 2. Delete moment
+        await this.supabase.from('story_moments').delete().eq('id', momentId);
+
+        // 3. Revert suggestion
+        await this.supabase
+            .from('ai_suggestions')
+            .update({ status: 'pending', confirmed_item_id: null })
+            .eq('id', suggestion.id);
+
+        return { success: true };
     }
 }

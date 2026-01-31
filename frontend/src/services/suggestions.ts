@@ -45,6 +45,20 @@ export const suggestionsApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['Suggestion', 'Element', 'Moment', 'Connection'],
         }),
+        revertElement: builder.mutation<{ success: boolean }, string>({
+            query: (elementId) => ({
+                url: `/suggestions/revert/element/${elementId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['Suggestion', 'Element', 'Mention'],
+        }),
+        revertMoment: builder.mutation<{ success: boolean }, string>({
+            query: (momentId) => ({
+                url: `/suggestions/revert/moment/${momentId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['Suggestion', 'Moment'],
+        }),
     }),
 });
 
@@ -53,4 +67,6 @@ export const {
     useUpdateSuggestionMutation,
     useRejectSuggestionMutation,
     useConfirmSuggestionMutation,
+    useRevertElementMutation,
+    useRevertMomentMutation,
 } = suggestionsApi;

@@ -53,6 +53,36 @@ export const storiesApi = baseApi.injectEndpoints({
                     ? [...result.map(({ id }) => ({ type: 'Mention' as const, id })), 'Mention']
                     : ['Mention'],
         }),
+        updateElement: builder.mutation<any, { storyId: string; elementId: string; updates: any }>({
+            query: ({ storyId, elementId, updates }) => ({
+                url: `/stories/${storyId}/elements/${elementId}`,
+                method: 'PATCH',
+                body: updates,
+            }),
+            invalidatesTags: (_result, _error, { elementId }) => [{ type: 'Element', id: elementId }, 'Element'],
+        }),
+        deleteElement: builder.mutation<{ success: boolean }, { storyId: string; elementId: string }>({
+            query: ({ storyId, elementId }) => ({
+                url: `/stories/${storyId}/elements/${elementId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Element'],
+        }),
+        updateMoment: builder.mutation<any, { storyId: string; momentId: string; updates: any }>({
+            query: ({ storyId, momentId, updates }) => ({
+                url: `/stories/${storyId}/timeline/${momentId}`,
+                method: 'PATCH',
+                body: updates,
+            }),
+            invalidatesTags: (_result, _error, { momentId }) => [{ type: 'Moment', id: momentId }, 'Moment'],
+        }),
+        deleteMoment: builder.mutation<{ success: boolean }, { storyId: string; momentId: string }>({
+            query: ({ storyId, momentId }) => ({
+                url: `/stories/${storyId}/timeline/${momentId}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Moment'],
+        }),
     }),
 });
 
@@ -64,4 +94,8 @@ export const {
     useGetStoryTimelineQuery,
     useGetStoryConnectionsQuery,
     useGetStoryMentionsQuery,
+    useUpdateElementMutation,
+    useDeleteElementMutation,
+    useUpdateMomentMutation,
+    useDeleteMomentMutation,
 } = storiesApi;

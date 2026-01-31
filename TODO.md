@@ -23,10 +23,19 @@
 - [ ] **Rewind & Correction**: Interface to edit "Narrative Truth" (Current Focus: UI/UX for editing AI's "Narrative Truth").
 
 ## Phase 3: The Narrative Partner (Co-Creation) 🎭
-- [ ] **Intelligent Interview**: AI-driven follow-ups to break "The Void" (Cold Start).
-- [ ] **Context-Aware Suggestions**: "What should happen next?" based on established logic.
-- [ ] **Conflict Mapping**: Tracking internal vs. external character conflicts.
-- [ ] **Cultural Intelligence**: Specific tropes for Indian/Russian/Global narratives.
+### [ ] Task 3.1: Rewind & Correction (Sovereignty) 🛠️
+- [ ] Backend: Update element/moment endpoints (`PATCH /elements/:id`, `PATCH /moments/:id`).
+- [ ] Frontend: "Master Edit" mode in Entity Dossier to fix AI-confirmed facts.
+- [ ] Validation: Prevent narrative paradoxes during manual edits.
+
+### [ ] Task 3.2: Intelligent Interview (Void Breaker) 🎙️
+- [ ] AI Service: `generateFollowupQuestion` based on extracted entities.
+- [ ] UI: "Deepen Context" prompt in narration sidebar.
+- [ ] Logic: Only trigger when narration is sparse or a new entity is "mysterious".
+
+### [ ] Task 3.3: Context-Aware Suggestions (The Ghostwriter) 👻
+- [ ] AI Service: `getStoryIdeas` using RAG over `narrative_elements`.
+- [ ] UI: "What if..." floating suggestions.
 
 ## Phase 4: Mastery & Professionalism 📄
 - [ ] **Story Gamification**: XP for depth, badges for consistency.
@@ -38,5 +47,5 @@
 ## 🛠️ Active Architectural Tasks
 - [x] **Centralized baseApi**: RTK Query injection structure.
 - [x] **Entity Resolution**: Aliasing system (map "Virat" -> "Virat Asthana").
-- [ ] **Rewind & Correction**: Interface to edit AI's "Narrative Truth" when it gets it wrong.
-- [ ] **Emotional Heatmaps**: Visualizing high-tension vs. low-tension story zones.
+- [ ] **Nexus Propagation**: Ensure connection changes reflect in the graph instantly.
+- [ ] **RAG Preparation**: Vectorizing `raw_narrations` for "Long-term Story Memory".
