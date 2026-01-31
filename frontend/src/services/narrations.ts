@@ -29,7 +29,7 @@ export const narrationsApi = baseApi.injectEndpoints({
                 method: 'POST',
                 body: { content },
             }),
-            invalidatesTags: ['Narration', 'Element', 'Moment'],
+            invalidatesTags: ['Narration', 'Element', 'Moment', 'Suggestion'],
         }),
     }),
 });
