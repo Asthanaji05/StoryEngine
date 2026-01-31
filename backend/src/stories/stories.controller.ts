@@ -10,7 +10,7 @@ import {
     Request,
 } from '@nestjs/common';
 import { StoriesService } from './stories.service';
-import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('stories')
 @UseGuards(JwtAuthGuard)
