@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetStoryByIdQuery } from '../../services/stories';
 import { useGetNarrationsQuery, useAddNarrationMutation } from '../../services/narrations';
-import { Send, ArrowLeft, MoreVertical, Sparkles, MessageSquare, Share2 } from 'lucide-react';
+import { Send, ArrowLeft, MoreVertical, Sparkles, MessageSquare, Share2 , User} from 'lucide-react';
 import { StoryInterview } from './StoryInterview';
 import { EntityList } from '../entities/EntityList';
 import { Timeline } from '../timeline/Timeline';
 import { NarrativeGraph } from '../visualization/NarrativeGraph';
+import { EntityDossier } from '../entities/EntityDossier';
 
 export const StorySession: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -16,7 +17,7 @@ export const StorySession: React.FC = () => {
     const [addNarration, { isLoading: isProcessing }] = useAddNarrationMutation();
 
     const [input, setInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'narration' | 'graph'>('narration');
+    const [activeTab, setActiveTab] = useState<'narration' | 'graph' | 'dossier'>('narration');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom on new narration
@@ -107,8 +108,8 @@ export const StorySession: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('narration')}
                         className={`flex items-center gap-2 px-4 border-b-2 transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'narration'
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'border-transparent text-slate-400 hover:text-slate-600'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-600'
                             }`}
                     >
                         <MessageSquare className="w-4 h-4" />
@@ -123,6 +124,16 @@ export const StorySession: React.FC = () => {
                     >
                         <Share2 className="w-4 h-4" />
                         Narrative Graph
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('dossier')}
+                        className={`flex items-center gap-2 px-4 border-b-2 transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'dossier'
+                                ? 'border-indigo-600 text-indigo-600'
+                                : 'border-transparent text-slate-400 hover:text-slate-600'
+                            }`}
+                    >
+                        <User className="w-4 h-4" />
+                        Dossier
                     </button>
                 </div>
 
@@ -225,9 +236,13 @@ export const StorySession: React.FC = () => {
                             </div>
                         </div>
                     </>
-                ) : (
+                ) : activeTab === 'graph' ? (
                     <div className="flex-1 bg-slate-50 p-6 overflow-hidden flex flex-col">
                         <NarrativeGraph />
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-hidden p-6 bg-slate-50 flex flex-col">
+                        <EntityDossier />
                     </div>
                 )}
             </div>

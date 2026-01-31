@@ -13,7 +13,7 @@ export const storiesApi = baseApi.injectEndpoints({
             query: () => '/stories',
             providesTags: ['Story'],
         }),
-        createStory: builder.mutation<Story, { title?: string }>({
+        createStory: builder.mutation<Story, Partial<Story>>({
             query: (body) => ({
                 url: '/stories',
                 method: 'POST',
@@ -46,6 +46,13 @@ export const storiesApi = baseApi.injectEndpoints({
                     ? [...result.map(({ id }) => ({ type: 'Connection' as const, id })), 'Connection']
                     : ['Connection'],
         }),
+        getStoryMentions: builder.query<any[], string>({
+            query: (id) => `/stories/${id}/mentions`,
+            providesTags: (result) =>
+                result
+                    ? [...result.map(({ id }) => ({ type: 'Mention' as const, id })), 'Mention']
+                    : ['Mention'],
+        }),
     }),
 });
 
@@ -56,4 +63,5 @@ export const {
     useGetStoryElementsQuery,
     useGetStoryTimelineQuery,
     useGetStoryConnectionsQuery,
+    useGetStoryMentionsQuery,
 } = storiesApi;

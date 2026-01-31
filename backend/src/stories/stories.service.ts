@@ -115,4 +115,18 @@ export class StoriesService {
         if (error) throw error;
         return data;
     }
+
+    async getStoryMentions(storyId: string, userId: string) {
+        // First verify story ownership
+        await this.getStoryById(storyId, userId);
+
+        const { data, error } = await this.supabase
+            .from('entity_mentions')
+            .select('*')
+            .eq('story_id', storyId)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    }
 }

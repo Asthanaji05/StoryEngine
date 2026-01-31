@@ -24,10 +24,10 @@
     - [x] Basic Interview UI
     - [ ] Dynamic, AI-driven interview questions based on previous answers
 
-## Phase 4: Vizualization & Exploration 🗺️
-- [x] Character & Faction Dossier (Basic Sidebar)
+## Phase 4: Visualization & Exploration 🗺️
+- [x] Character & Faction Dossier (Full Dossier Tab)
 - [x] Linear Timeline View
-- [ ] Narrative Graph Visualization (Force-directed graph of connections)
+- [x] Narrative Graph Visualization (Nexus View Tab)
 - [ ] Character Emotional Journey (Line charts)
 - [ ] World Map Visualization (for location-heavy stories)
 

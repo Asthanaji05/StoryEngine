@@ -60,4 +60,9 @@ export class StoriesController {
     async getConnections(@Request() req, @Param('id') id: string) {
         return this.storiesService.getStoryConnections(id, req.user.sub);
     }
+
+    @Get(':id/mentions')
+    async getMentions(@Request() req, @Param('id') id: string) {
+        return this.storiesService.getStoryMentions(id, req.user.sub);
+    }
 }
