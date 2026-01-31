@@ -39,6 +39,13 @@ export const storiesApi = baseApi.injectEndpoints({
                     ? [...result.map(({ id }) => ({ type: 'Moment' as const, id })), 'Moment']
                     : ['Moment'],
         }),
+        getStoryConnections: builder.query<any[], string>({
+            query: (id) => `/stories/${id}/connections`,
+            providesTags: (result) =>
+                result
+                    ? [...result.map(({ id }) => ({ type: 'Connection' as const, id })), 'Connection']
+                    : ['Connection'],
+        }),
     }),
 });
 
@@ -48,4 +55,5 @@ export const {
     useGetStoryByIdQuery,
     useGetStoryElementsQuery,
     useGetStoryTimelineQuery,
+    useGetStoryConnectionsQuery,
 } = storiesApi;

@@ -16,6 +16,14 @@ export class NarrationsService {
         // Verify story belongs to user
         await this.storiesService.getStoryById(storyId, userId);
 
+        // Fetch existing entity names for resolution context
+        const { data: existingElements } = await this.supabase
+            .from('narrative_elements')
+            .select('name')
+            .eq('story_id', storyId);
+
+        const existingNames = existingElements?.map(e => e.name) || [];
+
         // Get next sequence number
         const { data: lastNarration } = await this.supabase
             .from('raw_narrations')
@@ -30,9 +38,11 @@ export class NarrationsService {
         let extracted: any = null;
         let listenerResponse: string = 'I hear you. Tell me more.';
 
-        // Extract narrative elements and generate listener response using AI
+        // Extract narrative elements and generate listener response
         try {
-            extracted = await this.aiService.extractNarrativeElements(content);
+            extracted = await this.aiService.extractNarrativeElements(content, {
+                entities: existingNames
+            });
             listenerResponse = await this.aiService.generateListenerResponse(content);
         } catch (error) {
             console.error('AI processing failed:', error);
@@ -53,9 +63,9 @@ export class NarrationsService {
 
         if (error) throw error;
 
-        // Store extracted elements in their respective tables
+        // Store extracted elements and mentions
         if (extracted) {
-            await this.storeNarrativeElements(storyId, narration.id, extracted);
+            await this.storeNarrativeData(storyId, narration.id, extracted);
         }
 
         return {
@@ -66,54 +76,118 @@ export class NarrationsService {
         };
     }
 
-    private async storeNarrativeElements(storyId: string, narrationId: string, extracted: any) {
-        const promises = [];
+    private async storeNarrativeData(storyId: string, narrationId: string, extracted: any) {
+        const insertPromises = [];
+        const elementMap = new Map<string, string>();
 
-        // Store characters
-        if (extracted.characters?.length > 0) {
-            const characters = extracted.characters.map((char: any) => ({
-                story_id: storyId,
-                element_type: 'character',
-                name: char.name,
-                attributes: char.attributes,
-                first_mentioned_in_narration: narrationId,
-                last_mentioned_in_narration: narrationId,
-                confidence_score: char.confidence,
-            }));
-            promises.push(this.supabase.from('narrative_elements').insert(characters));
+        // Fetch existing elements to handle updates/re-mentions
+        const { data: existingElements } = await this.supabase
+            .from('narrative_elements')
+            .select('id, name')
+            .eq('story_id', storyId);
+
+        existingElements?.forEach(el => elementMap.set(el.name.toLowerCase(), el.id));
+
+        // 1. Process Elements (Characters, Locations, Orgs)
+        const elementsToInsert = [];
+        const mentionsToInsert = [];
+
+        const processEntities = (entities: any[], type: string) => {
+            entities?.forEach(ent => {
+                let elementId = elementMap.get(ent.name.toLowerCase());
+
+                if (!elementId) {
+                    // New Entity
+                    elementsToInsert.push({
+                        story_id: storyId,
+                        element_type: type,
+                        name: ent.name,
+                        attributes: ent.attributes,
+                        first_mentioned_in_narration: narrationId,
+                        last_mentioned_in_narration: narrationId,
+                        confidence_score: ent.confidence,
+                    });
+                } else {
+                    // Handle Existing Entity
+                    insertPromises.push(
+                        this.supabase
+                            .from('narrative_elements')
+                            .update({ last_mentioned_in_narration: narrationId })
+                            .eq('id', elementId)
+                    );
+                }
+            });
+        };
+
+        processEntities(extracted.characters, 'character');
+        processEntities(extracted.locations, 'location');
+        processEntities(extracted.organizations, 'organization');
+
+        // Execute element insertions first to get IDs for mentions
+        if (elementsToInsert.length > 0) {
+            const { data: newlyCreated } = await this.supabase
+                .from('narrative_elements')
+                .insert(elementsToInsert)
+                .select();
+
+            newlyCreated?.forEach(el => elementMap.set(el.name.toLowerCase(), el.id));
         }
 
-        // Store locations
-        if (extracted.locations?.length > 0) {
-            const locations = extracted.locations.map((loc: any) => ({
-                story_id: storyId,
-                element_type: 'location',
-                name: loc.name,
-                attributes: loc.attributes,
-                first_mentioned_in_narration: narrationId,
-                last_mentioned_in_narration: narrationId,
-                confidence_score: loc.confidence,
-            }));
-            promises.push(this.supabase.from('narrative_elements').insert(locations));
+        // 2. Prepare Mentions
+        const collectMentions = (entities: any[]) => {
+            entities?.forEach(ent => {
+                const elementId = elementMap.get(ent.name.toLowerCase());
+                if (elementId) {
+                    mentionsToInsert.push({
+                        story_id: storyId,
+                        element_id: elementId,
+                        narration_id: narrationId,
+                        mention_context: ent.mention_phrase,
+                        emotional_state: { current_emotion: ent.attributes?.current_emotion },
+                        importance_in_narration: ent.confidence * 10,
+                    });
+                }
+            });
+        };
+
+        collectMentions(extracted.characters);
+        collectMentions(extracted.locations);
+        collectMentions(extracted.organizations);
+
+        if (mentionsToInsert.length > 0) {
+            insertPromises.push(this.supabase.from('entity_mentions').insert(mentionsToInsert));
         }
 
-        // Store organizations
-        if (extracted.organizations?.length > 0) {
-            const orgs = extracted.organizations.map((org: any) => ({
-                story_id: storyId,
-                element_type: 'organization',
-                name: org.name,
-                attributes: org.attributes,
-                first_mentioned_in_narration: narrationId,
-                last_mentioned_in_narration: narrationId,
-                confidence_score: org.confidence,
-            }));
-            promises.push(this.supabase.from('narrative_elements').insert(orgs));
+        // 3. Store connections using Resolved IDs
+        if (extracted.connections?.length > 0) {
+            const connectionsToInsert = extracted.connections
+                .map((conn: any) => {
+                    const fromId = elementMap.get(conn.from.toLowerCase());
+                    const toId = elementMap.get(conn.to.toLowerCase());
+
+                    if (fromId && toId) {
+                        return {
+                            story_id: storyId,
+                            from_id: fromId,
+                            to_id: toId,
+                            connection_type: conn.type,
+                            description: conn.description,
+                            weight: conn.weight || 5,
+                            emotional_charge: conn.emotional_charge || 0,
+                            created_from_narration: narrationId,
+                        };
+                    }
+                    return null;
+                })
+                .filter(c => c !== null);
+
+            if (connectionsToInsert.length > 0) {
+                insertPromises.push(this.supabase.from('narrative_connections').insert(connectionsToInsert));
+            }
         }
 
-        // Store events
+        // 4. Store events (Story Moments)
         if (extracted.events?.length > 0) {
-            // Get total narration count to estimate position
             const { count } = await this.supabase
                 .from('raw_narrations')
                 .select('*', { count: 'exact', head: true })
@@ -127,26 +201,23 @@ export class NarrationsService {
                 description: event.description,
                 timeline_position: Math.min(0.99, basePosition + (index * 0.01)),
                 created_from_narration: narrationId,
-                characters_involved: event.characters_involved || [],
+                characters_involved: event.characters_involved?.map(name => elementMap.get(name.toLowerCase())).filter(id => !!id) || [],
                 emotional_signature: { [event.emotional_tone || 'neutral']: event.importance || 5 },
                 narrative_weight: event.importance || 5,
             }));
-            promises.push(this.supabase.from('story_moments').insert(events));
+            insertPromises.push(this.supabase.from('story_moments').insert(events));
         }
 
-        await Promise.all(promises);
+        await Promise.all(insertPromises);
     }
 
     async getNarrations(storyId: string, userId: string) {
-        // Verify story belongs to user
         await this.storiesService.getStoryById(storyId, userId);
-
         const { data, error } = await this.supabase
             .from('raw_narrations')
             .select('*')
             .eq('story_id', storyId)
             .order('sequence_number', { ascending: true });
-
         if (error) throw error;
         return data;
     }

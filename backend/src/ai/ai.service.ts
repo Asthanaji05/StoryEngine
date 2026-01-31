@@ -48,56 +48,63 @@ export class AiService {
   }
 
   /**
-   * Build prompt for entity extraction
+   * Build prompt for entity extraction with context-aware resolution
    */
   private buildExtractionPrompt(narration: string, context?: any): string {
+    const existingEntities = context?.entities?.length > 0
+      ? `Existing Story Entities (Use these for resolution/aliasing): ${context.entities.join(', ')}`
+      : 'No existing entities yet.';
+
     return `You are a hyper-competent Narrative Intelligence Engine. Your goal is to understand a creator's story as they narrate it naturally.
 
 Narration Snippet: "${narration}"
 
-${context ? `Previous Story Context: ${JSON.stringify(context)}` : ''}
+${existingEntities}
+${context?.recentEvents ? `Recent Story Events: ${JSON.stringify(context.recentEvents)}` : ''}
 
 CRITICAL TASK:
-Analyze the narration and extract key narrative components. Be intelligent about implied connections (e.g., if someone "forms a gang with friends", those friends are characters, and the gang is an organization).
+Analyze the narration and extract key narrative components. 
+
+ENTITY RESOLUTION RULES:
+1. If a character/location/org is mentioned by a partial name (e.g., "Virat") but matches an existing entity ("Virat Asthana"), map it to the EXACT existing name.
+2. DO NOT create duplicate entities if they refer to the same person/place.
+3. If an entity is new, provide its full, formal name if implied.
 
 Extract and return ONLY a valid JSON object:
 {
   "characters": [
     {
-      "name": "character name",
+      "name": "EXACT match from existing or full new name",
+      "mention_phrase": "the specific snippet describing them here",
       "attributes": {
         "description": "brief physical/personality description",
         "traits": ["trait1", "trait2"],
-        "internal_conflict": "optional brief description"
+        "current_emotion": "hope/dread/etc"
       },
       "confidence": 0.0-1.0
     }
   ],
   "locations": [
     {
-      "name": "location name",
-      "attributes": {
-        "description": "ambiance/sensory details",
-        "type": "city/room/planet/etc"
-      },
+      "name": "EXACT match or full name",
+      "mention_phrase": "snippet",
+      "attributes": { "description": "vibe", "type": "city/room/etc" },
       "confidence": 0.0-1.0
     }
   ],
   "organizations": [
     {
-      "name": "organization name",
-      "attributes": {
-        "type": "gang/company/group/etc",
-        "description": "purpose/vibe"
-      },
+      "name": "EXACT match or full name",
+      "mention_phrase": "snippet",
+      "attributes": { "type": "group/etc", "description": "vibe" },
       "confidence": 0.0-1.0
     }
   ],
   "events": [
     {
-      "title": "Short title (e.g., 'The Founding of Toman')",
+      "title": "Short title",
       "description": "Detailed narrative significance",
-      "characters_involved": ["names"],
+      "characters_involved": ["names - MUST MATCH RESOLVED NAMES"],
       "location": "name",
       "emotional_tone": "hope/dread/joy/etc",
       "importance": 1-10,
@@ -106,21 +113,19 @@ Extract and return ONLY a valid JSON object:
   ],
   "connections": [
     {
-      "from": "Entity A",
-      "to": "Entity B",
+      "from": "Resolved Name A",
+      "to": "Resolved Name B",
       "type": "founded/loves/hates/member_of/rivals/located_at",
       "weight": 1-10,
       "emotional_charge": -10 to +10,
-      "description": "reason for connection"
+      "description": "reason"
     }
   ]
 }
 
 Rules:
 1. DO NOT invent information not present or strongly implied.
-2. If an entity was mentioned before, keep its name consistent.
-3. Be specific about Emotional Tone and Significance.
-4. Return ONLY the JSON object. No preamble or markdown blocks.`;
+2. Return ONLY JSON. No preamble.`;
   }
 
   /**

@@ -55,4 +55,9 @@ export class StoriesController {
     async getTimeline(@Request() req, @Param('id') id: string) {
         return this.storiesService.getStoryTimeline(id, req.user.sub);
     }
+
+    @Get(':id/connections')
+    async getConnections(@Request() req, @Param('id') id: string) {
+        return this.storiesService.getStoryConnections(id, req.user.sub);
+    }
 }

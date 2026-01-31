@@ -17,7 +17,3 @@ CREATE INDEX IF NOT EXISTS idx_entity_mentions_narration_id ON public.entity_men
 -- Enable RLS
 ALTER TABLE public.entity_mentions ENABLE ROW LEVEL SECURITY;
 
--- Policy
-CREATE POLICY "Users can manage mentions in own stories" ON entity_mentions FOR ALL USING (
-  EXISTS (SELECT 1 FROM stories WHERE id = story_id AND user_id = auth.uid())
-);

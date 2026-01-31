@@ -6,6 +6,7 @@ import { Send, ArrowLeft, MoreVertical, Sparkles, MessageSquare } from 'lucide-r
 import { StoryInterview } from './StoryInterview';
 import { EntityList } from '../entities/EntityList';
 import { Timeline } from '../timeline/Timeline';
+import { NarrativeGraph } from '../visualization/NarrativeGraph';
 
 export const StorySession: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -103,6 +104,11 @@ export const StorySession: React.FC = () => {
                 {/* Dynamic Timeline Bar */}
                 <div className="bg-white border-b border-slate-100 shrink-0">
                     <Timeline />
+                </div>
+
+                {/* Narrative Intelligence Graph */}
+                <div className="p-6 bg-slate-50 border-b border-slate-100">
+                    <NarrativeGraph />
                 </div>
 
                 {/* Narrative Feed */}

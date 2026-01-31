@@ -102,4 +102,17 @@ export class StoriesService {
         if (error) throw error;
         return data;
     }
+
+    async getStoryConnections(storyId: string, userId: string) {
+        // First verify story ownership
+        await this.getStoryById(storyId, userId);
+
+        const { data, error } = await this.supabase
+            .from('narrative_connections')
+            .select('*')
+            .eq('story_id', storyId);
+
+        if (error) throw error;
+        return data;
+    }
 }
