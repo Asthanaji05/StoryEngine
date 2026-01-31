@@ -15,7 +15,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 @Controller("stories")
 @UseGuards(JwtAuthGuard)
 export class StoriesController {
-  constructor(private storiesService: StoriesService) {}
+  constructor(private storiesService: StoriesService) { }
 
   @Post()
   async create(@Request() req, @Body() body: { title?: string }) {
@@ -131,6 +131,21 @@ export class StoriesController {
       characterId,
       req.user.sub,
       body.prompt,
+    );
+  }
+
+  @Post(":id/elements/:elementId/merge")
+  async mergeElement(
+    @Request() req,
+    @Param("id") id: string,
+    @Param("elementId") elementId: string,
+    @Body() body: { targetId: string },
+  ) {
+    return this.storiesService.mergeEntities(
+      id,
+      req.user.sub,
+      elementId,
+      body.targetId,
     );
   }
 }

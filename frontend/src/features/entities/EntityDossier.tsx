@@ -5,13 +5,14 @@ import {
     useGetStoryMentionsQuery,
     useUpdateElementMutation,
     useDeleteElementMutation,
-    useInterviewCharacterMutation
+    useInterviewCharacterMutation,
+    useMergeElementMutation
 } from '../../services/stories';
 import { useRevertElementMutation } from '../../services/suggestions';
 import {
     User, MapPin, Shield, MessageSquare, Clock, Sparkles,
-    TrendingUp, TrendingDown, Minus, Edit3, Trash2, Check, X,
-    RotateCcw, ArrowLeft, Search, Filter, Activity, Send, Download
+    TrendingUp, TrendingDown, Edit3, Trash2, Check, X,
+    RotateCcw, ArrowLeft, Search, Activity, Send, Download, Merge
 } from 'lucide-react';
 import { useRef } from 'react';
 
@@ -173,6 +174,87 @@ const CharacterInterviewModal: React.FC<{
     );
 };
 
+const MergeModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    currentEntity: any;
+    allEntities: any[];
+    storyId: string;
+    onSuccess: () => void;
+}> = ({ isOpen, onClose, currentEntity, allEntities, storyId, onSuccess }) => {
+    const [merge] = useMergeElementMutation();
+    const [targetId, setTargetId] = useState<string | null>(null);
+
+    const candidates = useMemo(() => {
+        return allEntities.filter(e =>
+            e.id !== currentEntity.id &&
+            e.element_type === currentEntity.element_type
+        );
+    }, [allEntities, currentEntity]);
+
+    const handleConfirm = async () => {
+        if (!targetId) return;
+        if (!window.confirm(`Are you sure? "${currentEntity.name}" will be permanently deleted and merged into the selected entity.`)) return;
+
+        try {
+            await merge({ storyId, elementId: currentEntity.id, targetId }).unwrap();
+            onSuccess();
+            onClose();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <Merge className="w-5 h-5 text-indigo-500" />
+                        Merge Entity
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5 text-slate-400 hover:text-slate-600" /></button>
+                </div>
+
+                <p className="text-sm text-slate-500 mb-6">
+                    Select a target to merge <strong>{currentEntity.name}</strong> into.
+                    All mentions, moments, and connections will be transferred.
+                    <strong>{currentEntity.name}</strong> will be deleted.
+                </p>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2 mb-6">
+                    {candidates.map(candidate => (
+                        <button
+                            key={candidate.id}
+                            onClick={() => setTargetId(candidate.id)}
+                            className={`w-full p-4 rounded-xl border-2 text-left transition-all flex justify-between items-center ${targetId === candidate.id ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 hover:border-indigo-200'}`}
+                        >
+                            <span className="font-bold text-slate-700">{candidate.name}</span>
+                            {targetId === candidate.id && <Check className="w-4 h-4 text-indigo-600" />}
+                        </button>
+                    ))}
+                    {candidates.length === 0 && (
+                        <div className="text-center text-slate-400 italic p-4">No compatible entities found.</div>
+                    )}
+                </div>
+
+                <div className="flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 text-slate-400 font-bold text-xs uppercase hover:text-slate-600">Cancel</button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={!targetId}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:shadow-none transition-all hover:scale-105"
+                    >
+                        Confirm Merge
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const EntityDossier: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { data: elements } = useGetStoryElementsQuery(id!);
@@ -184,6 +266,7 @@ export const EntityDossier: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isInterviewOpen, setIsInterviewOpen] = useState(false);
+    const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<string | null>(null);
 
@@ -283,6 +366,7 @@ export const EntityDossier: React.FC = () => {
                                         <MessageSquare className="w-4 h-4" /> Interview
                                     </button>
                                 )}
+                                <button onClick={() => setIsMergeModalOpen(true)} className="p-3 bg-violet-50 text-violet-500 hover:bg-violet-100 rounded-2xl transition-all" title="Merge"><Merge className="w-5 h-5" /></button>
                                 <button onClick={() => setIsEditMode(true)} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all"><Edit3 className="w-5 h-5" /></button>
                                 <button onClick={handleRevert} className="p-3 bg-amber-50 text-amber-500 hover:bg-amber-100 rounded-2xl transition-all" title="Revert to Draft"><RotateCcw className="w-5 h-5" /></button>
                                 <button onClick={handleDelete} className="p-3 bg-rose-50 text-rose-400 hover:text-rose-600 rounded-2xl transition-all"><Trash2 className="w-5 h-5" /></button>
@@ -296,6 +380,15 @@ export const EntityDossier: React.FC = () => {
                     onClose={() => setIsInterviewOpen(false)}
                     character={selectedEntity}
                     storyId={id!}
+                />
+
+                <MergeModal
+                    isOpen={isMergeModalOpen}
+                    onClose={() => setIsMergeModalOpen(false)}
+                    currentEntity={selectedEntity}
+                    allEntities={elements || []}
+                    storyId={id!}
+                    onSuccess={() => setSelectedId(null)}
                 />
 
                 <div className="flex-1 overflow-y-auto px-10 py-16 scrollbar-hide">

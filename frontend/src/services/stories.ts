@@ -101,6 +101,14 @@ export const storiesApi = baseApi.injectEndpoints({
                 body: { prompt },
             }),
         }),
+        mergeElement: builder.mutation<void, { storyId: string; elementId: string; targetId: string }>({
+            query: ({ storyId, elementId, targetId }) => ({
+                url: `/stories/${storyId}/elements/${elementId}/merge`,
+                method: 'POST',
+                body: { targetId },
+            }),
+            invalidatesTags: ['Element', 'Mention', 'Moment', 'Connection'],
+        }),
     }),
 });
 
@@ -119,4 +127,5 @@ export const {
     useUpdateMomentMutation,
     useDeleteMomentMutation,
     useInterviewCharacterMutation,
+    useMergeElementMutation,
 } = storiesApi;
