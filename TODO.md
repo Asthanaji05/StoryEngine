@@ -15,8 +15,9 @@
 - [x] **Dynamic Timeline**: Sequence-based event placements.
 - [x] **Nexus Graph**: Force-directed relationship visualization.
 - [x] **Entity Dossier**: structured profiles with historical mentions.
+- [x] **Trust Filter**: AI Confirmation loop for extractions.
+- [x] **Inline Editing**: Users can correct AI suggestions before they become facts.
 - [ ] **Character Journey View**: Vertical flow with emotional arc tracking (Current Focus).
-- [ ] **Paradox Detection**: AI flagging narrative contradictions (e.g., character in two places at once).
 
 ## Phase 3: The Narrative Partner (Co-Creation) 🎭
 - [ ] **Intelligent Interview**: AI-driven follow-ups to break "The Void" (Cold Start).

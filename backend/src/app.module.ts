@@ -5,6 +5,7 @@ import { StoriesModule } from './stories/stories.module';
 import { NarrationsModule } from './narrations/narrations.module';
 import { AiModule } from './ai/ai.module';
 import { DatabaseModule } from './database/database.module';
+import { SuggestionsModule } from './suggestions/suggestions.module';
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { DatabaseModule } from './database/database.module';
         StoriesModule,
         NarrationsModule,
         AiModule,
+        SuggestionsModule,
     ],
 })
 export class AppModule { }

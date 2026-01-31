@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetStoryByIdQuery } from '../../services/stories';
 import { useGetNarrationsQuery, useAddNarrationMutation } from '../../services/narrations';
-import { Send, ArrowLeft, MoreVertical, Sparkles, MessageSquare, Share2 , User} from 'lucide-react';
+import { Send, ArrowLeft, MoreVertical, Sparkles, MessageSquare, Share2, User } from 'lucide-react';
 import { StoryInterview } from './StoryInterview';
 import { EntityList } from '../entities/EntityList';
 import { Timeline } from '../timeline/Timeline';
 import { NarrativeGraph } from '../visualization/NarrativeGraph';
 import { EntityDossier } from '../entities/EntityDossier';
+import { SuggestionsOverlay } from '../suggestions/SuggestionsOverlay';
 
 export const StorySession: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -118,8 +119,8 @@ export const StorySession: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('graph')}
                         className={`flex items-center gap-2 px-4 border-b-2 transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'graph'
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'border-transparent text-slate-400 hover:text-slate-600'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-600'
                             }`}
                     >
                         <Share2 className="w-4 h-4" />
@@ -128,8 +129,8 @@ export const StorySession: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('dossier')}
                         className={`flex items-center gap-2 px-4 border-b-2 transition-all text-xs font-bold uppercase tracking-widest ${activeTab === 'dossier'
-                                ? 'border-indigo-600 text-indigo-600'
-                                : 'border-transparent text-slate-400 hover:text-slate-600'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-600'
                             }`}
                     >
                         <User className="w-4 h-4" />
@@ -246,6 +247,9 @@ export const StorySession: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* AI Confirmation Loop - Trust Layer */}
+            <SuggestionsOverlay />
         </div>
     );
 };
