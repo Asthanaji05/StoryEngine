@@ -17,8 +17,10 @@
 - [x] **Entity Dossier**: structured profiles with historical mentions.
 - [x] **Trust Filter**: AI Confirmation loop for extractions.
 - [x] **Inline Editing**: Users can correct AI suggestions before they become facts.
-- [x] **Real-time Sync**: Narration instantly triggers suggestion popups.
-- [ ] **Character Journey View**: Vertical flow with emotional arc tracking (Current Focus).
+- [x] **Real-time Sync**: The UI updates dynamically as narrations are processed.
+- [x] **Character Journey View & Sentiment Arc**: A vertical timeline showing a single character's emotional arc and key events.
+- [x] **Entity Resolution**: The system can map aliases (e.g., "The Doctor") to a canonical entity (e.g., "Doctor Who").
+- [ ] **Rewind & Correction**: Interface to edit "Narrative Truth" (Current Focus: UI/UX for editing AI's "Narrative Truth").
 
 ## Phase 3: The Narrative Partner (Co-Creation) 🎭
 - [ ] **Intelligent Interview**: AI-driven follow-ups to break "The Void" (Cold Start).

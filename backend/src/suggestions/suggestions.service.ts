@@ -121,7 +121,10 @@ export class SuggestionsService {
                 element_id: elementId,
                 narration_id,
                 mention_context: data.mention_phrase,
-                emotional_state: { current_emotion: data.attributes?.current_emotion },
+                emotional_state: {
+                    current_emotion: data.attributes?.current_emotion,
+                    sentiment_score: data.attributes?.sentiment_score
+                },
                 importance_in_narration: (data.confidence || 1.0) * 10,
             });
             resultId = elementId;

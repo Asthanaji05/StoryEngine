@@ -79,7 +79,8 @@ Extract and return ONLY a valid JSON object:
       "attributes": {
         "description": "brief physical/personality description",
         "traits": ["trait1", "trait2"],
-        "current_emotion": "hope/dread/etc"
+        "current_emotion": "hope/dread/etc",
+        "sentiment_score": -10 to +10
       },
       "confidence": 0.0-1.0
     }
