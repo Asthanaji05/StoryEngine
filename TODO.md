@@ -17,6 +17,7 @@
 - [x] **Entity Dossier**: structured profiles with historical mentions.
 - [x] **Trust Filter**: AI Confirmation loop for extractions.
 - [x] **Inline Editing**: Users can correct AI suggestions before they become facts.
+- [x] **Real-time Sync**: Narration instantly triggers suggestion popups.
 - [ ] **Character Journey View**: Vertical flow with emotional arc tracking (Current Focus).
 
 ## Phase 3: The Narrative Partner (Co-Creation) 🎭

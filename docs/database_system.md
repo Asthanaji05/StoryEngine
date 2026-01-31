@@ -68,14 +68,26 @@ Granular log of every time an element appeared in the narration.
 - `mention_context` (Text): The specific phrase or snippet where they appeared.
 - `emotional_state` (JSONB): How the character was feeling *specifically in this scene*.
 
+### 2.8 `ai_suggestions` (The Trust Layer) 🛡️
+Temporary holding area for AI's perceptions before user confirmation.
+- `id` (UUID, PK): Unique identifier.
+- `story_id` (UUID): Parent story.
+- `narration_id` (UUID): Source narration.
+- `suggestion_type` (Text): 'element', 'moment', or 'connection'.
+- `suggested_data` (JSONB): The raw extraction (name, type, etc.).
+- `status` (Text): 'pending', 'accepted', 'rejected'.
+
 ---
 
 ## 3. Data Flow Rationale
-When a user narrates:
 1. **Append** to `raw_narrations`.
 2. **AI Analysis** looks for entities and events.
-3. **Merge/Update** `narrative_elements`: If "Virat" is mentioned but "Virat Asthana" exists, we resolve them to the same ID.
-4. **Log** `entity_mentions`: This allows us to reconstruct a character's "Journey" in the Dossier tab without duplicating their main record.
-5. **Update Graph**: `narrative_connections` are updated to reflect shifting alliances.
+3. **Queue Suggestions**: AI perceptions are staged in `ai_suggestions` as "Pending".
+4. **User Confirmation**: User approves/edits a suggestion via the UI.
+5. **Finalize Truth**: Upon confirmation:
+   - `narrative_elements` are created or updated.
+   - `entity_mentions` log the specific journey moment.
+   - `story_moments` or `narrative_connections` are persisted based on the type.
+6. **Update Graph**: Visualizations refresh with confirmed-only data.
 
 This structure allows the engine to be both a **listening partner** (via narrations) and a **world archaeologist** (via elements and connections).
