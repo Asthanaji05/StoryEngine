@@ -70,12 +70,16 @@ Granular log of every time an element appeared in the narration.
 
 ### 2.8 `ai_suggestions` (The Trust Layer) 🛡️
 Temporary holding area for AI's perceptions before user confirmation.
-- `id` (UUID, PK): Unique identifier.
-- `story_id` (UUID): Parent story.
-- `narration_id` (UUID): Source narration.
-- `suggestion_type` (Text): 'element', 'moment', or 'connection'.
-- `suggested_data` (JSONB): The raw extraction (name, type, etc.).
-- `status` (Text): 'pending', 'accepted', 'rejected'.
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Primary Key |
+| `story_id`| UUID | Reference to story |
+| `narration_id` | UUID | Reference to source narration |
+| `suggestion_type` | TEXT | 'element', 'moment', 'connection' |
+| `suggested_data` | JSONB | The draft data (names, traits, etc.) |
+| `confirmed_item_id` | UUID | Reference to the actual created item (after confirmation) |
+| `status` | TEXT | 'pending', 'accepted', 'rejected' |
+| `created_at` | TIMESTAMPTZ | Timestamp of suggestion |
 
 ---
 
