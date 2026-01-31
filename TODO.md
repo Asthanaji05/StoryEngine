@@ -11,41 +11,46 @@
 - [x] **AI Listener**: Gemini 2.0 Flash providing empathetic feedback.
 - [x] **Entity Extraction**: Accuracy-focused extraction of Characters, Locations, and Orgs.
 
-## Phase 2: Visual Truth (Establishing Trust) 🎙️
-- [x] **Dynamic Timeline**: Sequence-based event placements.
-- [x] **Nexus Graph**: Force-directed relationship visualization.
-- [x] **Entity Dossier**: structured profiles with historical mentions.
-- [x] **Trust Filter**: AI Confirmation loop for extractions.
-- [x] **Inline Editing**: Users can correct AI suggestions before they become facts.
-- [x] **Real-time Sync**: The UI updates dynamically as narrations are processed.
-- [x] **Character Journey View & Sentiment Arc**: A vertical timeline showing a single character's emotional arc and key events.
-- [x] **Entity Resolution**: The system can map aliases (e.g., "The Doctor") to a canonical entity (e.g., "Doctor Who").
-- [ ] **Rewind & Correction**: Interface to edit "Narrative Truth" (Current Focus: UI/UX for editing AI's "Narrative Truth").
+## Phase 3: The Narrative Hub & UX Refactor ✅
+### [x] Task 3.1: Story Identity & AI Branding
+- [x] UI: Edit Story Title/Description with "AI Brainstorm" button.
+- [x] AI: Generate 3 title/description options based on current story context.
+- [x] Feature: User selects an option to instantly rebrand their story.
 
-## Phase 3: The Narrative Partner (Co-Creation) 🎭
-### [ ] Task 3.1: Rewind & Correction (Sovereignty) 🛠️
-- [ ] Backend: Update element/moment endpoints (`PATCH /elements/:id`, `PATCH /moments/:id`).
-- [ ] Frontend: "Master Edit" mode in Entity Dossier to fix AI-confirmed facts.
-- [ ] Validation: Prevent narrative paradoxes during manual edits.
+### [x] Task 3.2: UX Overhaul
+- [x] Layout: Move Suggestions to a horizontal scrollable card bar at the bottom.
+- [x] Component: `World Bible` (formerly Entity Dossier) - cleaner sidebar-less detail view.
+- [x] Component: `Vertical Narrative Flow` - redesigned graph/timeline hybrid.
+- [x] Renaming: Universal shift from "Elements/Entities" to "World Bible / Facts".
 
-### [ ] Task 3.2: Intelligent Interview (Void Breaker) 🎙️
-- [ ] AI Service: `generateFollowupQuestion` based on extracted entities.
-- [ ] UI: "Deepen Context" prompt in narration sidebar.
-- [ ] Logic: Only trigger when narration is sparse or a new entity is "mysterious".
+### [x] Task 3.3: User Management
+- [x] Home: Create a "Story Landing Page" (Dashboard) showing story cards.
+- [x] Profile: Create a User Profile page with account settings.
+- [x] Auth: Implement Logout functionality.
 
-### [ ] Task 3.3: Context-Aware Suggestions (The Ghostwriter) 👻
-- [ ] AI Service: `getStoryIdeas` using RAG over `narrative_elements`.
-- [ ] UI: "What if..." floating suggestions.
+## Phase 4: Mastery & Professionalism 🚀
+### [x] Task 4.1: Story Gamification
+- [x] Backend: Add `xp` and `level` to `profiles` table.
+- [x] Backend: Implement `GamificationService` to award XP for narrations and confirmations.
+- [x] UI: Add "Mastery Level" bar to the main header.
+- [ ] UI: Implement XP gain animations.
 
-## Phase 4: Mastery & Professionalism 📄
-- [ ] **Story Gamification**: XP for depth, badges for consistency.
-- [ ] **Professional Export**: World Bible (Markdown), Screenplay, or Novel formats.
-- [ ] **Living World Mode**: Talk to your characters using their established history.
+### [x] Task 4.2: Scene Simulation (Living World)
+- [x] Backend: Create `ai/simulate` endpoint for character dialogue.
+- [x] UI: Create "Ask a Character" interface in the World Bible.
+- [x] AI: Implement character-specific prompt logic using historical facts.
+
+### [x] Task 4.3: Professional Export
+- [x] UI: Add "Export Story" modal with format options (Markdown, PDF).
+- [ ] Backend: Implement document generation for World Bible and Timeline.
+
+### [ ] Task 4.4: Cinematic Visuals
+- [x] UI: Implement high-fidelity location backgrounds in the World Bible.
+- [ ] AI: Auto-generate location imagery based on descriptions.
 
 ---
 
 ## 🛠️ Active Architectural Tasks
-- [x] **Centralized baseApi**: RTK Query injection structure.
-- [x] **Entity Resolution**: Aliasing system (map "Virat" -> "Virat Asthana").
-- [ ] **Nexus Propagation**: Ensure connection changes reflect in the graph instantly.
-- [ ] **RAG Preparation**: Vectorizing `raw_narrations` for "Long-term Story Memory".
+- [x] **Rewind & Correction**: Master edit mode is active.
+- [x] **Nexus Propagation**: Fixed vertical graph visualization.
+- [x] **Database Documentation**: Sync `database_system.md` with confirm_item_id.

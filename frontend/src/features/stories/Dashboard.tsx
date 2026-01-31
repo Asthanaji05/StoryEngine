@@ -28,12 +28,17 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <span className="font-bold text-xl tracking-tight text-slate-900">Story Engine</span>
                     </div>
-                    <button
-                        onClick={() => {/* TODO: Profile/Logout */ }}
-                        className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden"
-                    >
-                        {/* User avatar */}
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className="flex items-center gap-2 pl-2 pr-4 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-all group"
+                        >
+                            <div className="w-7 h-7 rounded-full bg-white border border-slate-300 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
+                                <Plus className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Profile</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 

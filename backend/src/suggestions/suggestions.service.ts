@@ -1,251 +1,277 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { SUPABASE_CLIENT } from '../database/database.module';
-import { StoriesService } from '../stories/stories.service';
+import { Injectable, Inject } from "@nestjs/common";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { SUPABASE_CLIENT } from "../database/database.module";
+import { StoriesService } from "../stories/stories.service";
+import { GamificationService } from "../gamification/gamification.service";
 
 @Injectable()
 export class SuggestionsService {
-    constructor(
-        @Inject(SUPABASE_CLIENT) private supabase: SupabaseClient,
-        private storiesService: StoriesService,
-    ) { }
+  constructor(
+    @Inject(SUPABASE_CLIENT) private supabase: SupabaseClient,
+    private storiesService: StoriesService,
+    private gamificationService: GamificationService,
+  ) {}
 
-    async getPendingSuggestions(storyId: string, userId: string) {
-        await this.storiesService.getStoryById(storyId, userId);
+  async getPendingSuggestions(storyId: string, userId: string) {
+    await this.storiesService.getStoryById(storyId, userId);
 
-        const { data, error } = await this.supabase
-            .from('ai_suggestions')
-            .select(`
+    const { data, error } = await this.supabase
+      .from("ai_suggestions")
+      .select(
+        `
                 *,
                 narration:raw_narrations(content, sequence_number)
-            `)
-            .eq('story_id', storyId)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: true });
+            `,
+      )
+      .eq("story_id", storyId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
 
-        if (error) throw error;
-        return data;
-    }
+    if (error) throw error;
+    return data;
+  }
 
-    async updateSuggestion(suggestionId: string, userId: string, data: any) {
-        // First verify ownership through story_id
-        const { data: suggestion } = await this.supabase
-            .from('ai_suggestions')
-            .select('story_id')
-            .eq('id', suggestionId)
-            .single();
+  async updateSuggestion(suggestionId: string, userId: string, data: any) {
+    // First verify ownership through story_id
+    const { data: suggestion } = await this.supabase
+      .from("ai_suggestions")
+      .select("story_id")
+      .eq("id", suggestionId)
+      .single();
 
-        if (!suggestion) throw new Error('Suggestion not found');
-        await this.storiesService.getStoryById(suggestion.story_id, userId);
+    if (!suggestion) throw new Error("Suggestion not found");
+    await this.storiesService.getStoryById(suggestion.story_id, userId);
 
-        const { data: updated, error } = await this.supabase
-            .from('ai_suggestions')
-            .update({ suggested_data: data })
-            .eq('id', suggestionId)
-            .select()
-            .single();
+    const { data: updated, error } = await this.supabase
+      .from("ai_suggestions")
+      .update({ suggested_data: data })
+      .eq("id", suggestionId)
+      .select()
+      .single();
 
-        if (error) throw error;
-        return updated;
-    }
+    if (error) throw error;
+    return updated;
+  }
 
-    async rejectSuggestion(suggestionId: string, userId: string) {
-        const { data: suggestion } = await this.supabase
-            .from('ai_suggestions')
-            .select('story_id')
-            .eq('id', suggestionId)
-            .single();
+  async rejectSuggestion(suggestionId: string, userId: string) {
+    const { data: suggestion } = await this.supabase
+      .from("ai_suggestions")
+      .select("story_id")
+      .eq("id", suggestionId)
+      .single();
 
-        if (!suggestion) throw new Error('Suggestion not found');
-        await this.storiesService.getStoryById(suggestion.story_id, userId);
+    if (!suggestion) throw new Error("Suggestion not found");
+    await this.storiesService.getStoryById(suggestion.story_id, userId);
 
-        const { error } = await this.supabase
-            .from('ai_suggestions')
-            .update({ status: 'rejected' })
-            .eq('id', suggestionId);
+    const { error } = await this.supabase
+      .from("ai_suggestions")
+      .update({ status: "rejected" })
+      .eq("id", suggestionId);
 
-        if (error) throw error;
-        return { success: true };
-    }
+    if (error) throw error;
+    return { success: true };
+  }
 
-    async confirmSuggestion(suggestionId: string, userId: string) {
-        const { data: suggestion, error: fetchError } = await this.supabase
-            .from('ai_suggestions')
-            .select('*')
-            .eq('id', suggestionId)
-            .single();
+  async confirmSuggestion(suggestionId: string, userId: string) {
+    const { data: suggestion, error: fetchError } = await this.supabase
+      .from("ai_suggestions")
+      .select("*")
+      .eq("id", suggestionId)
+      .single();
 
-        if (fetchError || !suggestion) throw new Error('Suggestion not found');
-        await this.storiesService.getStoryById(suggestion.story_id, userId);
+    if (fetchError || !suggestion) throw new Error("Suggestion not found");
+    await this.storiesService.getStoryById(suggestion.story_id, userId);
 
-        const { suggested_data: data, suggestion_type: type, story_id, narration_id } = suggestion;
+    const {
+      suggested_data: data,
+      suggestion_type: type,
+      story_id,
+      narration_id,
+    } = suggestion;
 
-        let resultId = null;
+    let resultId = null;
 
-        if (type === 'element') {
-            // 1. Resolve or Create Element
-            const { data: existing } = await this.supabase
-                .from('narrative_elements')
-                .select('id')
-                .eq('story_id', story_id)
-                .eq('name', data.name)
-                .single();
+    if (type === "element") {
+      // 1. Resolve or Create Element
+      const { data: existing } = await this.supabase
+        .from("narrative_elements")
+        .select("id")
+        .eq("story_id", story_id)
+        .eq("name", data.name)
+        .single();
 
-            let elementId = existing?.id;
+      let elementId = existing?.id;
 
-            if (!elementId) {
-                const { data: created } = await this.supabase
-                    .from('narrative_elements')
-                    .insert({
-                        story_id,
-                        element_type: data.element_type,
-                        name: data.name,
-                        attributes: data.attributes,
-                        first_mentioned_in_narration: narration_id,
-                        last_mentioned_in_narration: narration_id,
-                        confidence_score: data.confidence || 1.0,
-                    })
-                    .select()
-                    .single();
-                elementId = created.id;
-            } else {
-                await this.supabase
-                    .from('narrative_elements')
-                    .update({ last_mentioned_in_narration: narration_id })
-                    .eq('id', elementId);
-            }
-
-            // 2. Log Mention (The Journey)
-            await this.supabase.from('entity_mentions').insert({
-                story_id,
-                element_id: elementId,
-                narration_id,
-                mention_context: data.mention_phrase,
-                emotional_state: {
-                    current_emotion: data.attributes?.current_emotion,
-                    sentiment_score: data.attributes?.sentiment_score
-                },
-                importance_in_narration: (data.confidence || 1.0) * 10,
-            });
-            resultId = elementId;
-
-        } else if (type === 'moment') {
-            // Resolve characters involved by name
-            const involvedNames = data.involved || [];
-            const { data: elements } = await this.supabase
-                .from('narrative_elements')
-                .select('id, name')
-                .eq('story_id', story_id)
-                .in('name', involvedNames);
-
-            const characterIds = elements?.map(e => e.id) || [];
-
-            // Calculate position based on sequence if not provided
-            const { data: narration } = await this.supabase
-                .from('raw_narrations')
-                .select('sequence_number')
-                .eq('id', narration_id)
-                .single();
-
-            const position = (narration?.sequence_number || 0) / 100;
-
-            const { data: created } = await this.supabase
-                .from('story_moments')
-                .insert({
-                    story_id,
-                    title: data.title,
-                    description: data.description,
-                    timeline_position: Math.min(0.99, position),
-                    created_from_narration: narration_id,
-                    characters_involved: characterIds,
-                    narrative_weight: data.importance || 5,
-                })
-                .select()
-                .single();
-            resultId = created.id;
-
-        } else if (type === 'connection') {
-            const { data: elements } = await this.supabase
-                .from('narrative_elements')
-                .select('id, name')
-                .eq('story_id', story_id)
-                .in('name', [data.from, data.to]);
-
-            const fromEl = elements?.find(e => e.name === data.from);
-            const toEl = elements?.find(e => e.name === data.to);
-
-            if (fromEl && toEl) {
-                const { data: created } = await this.supabase
-                    .from('narrative_connections')
-                    .insert({
-                        story_id,
-                        from_id: fromEl.id,
-                        to_id: toEl.id,
-                        connection_type: data.type,
-                        description: data.description,
-                        created_from_narration: narration_id,
-                    })
-                    .select()
-                    .single();
-                resultId = created.id;
-            }
-        }
-
-        // Mark suggestion as accepted and link it to the confirmed item
+      if (!elementId) {
+        const { data: created } = await this.supabase
+          .from("narrative_elements")
+          .insert({
+            story_id,
+            element_type: data.element_type,
+            name: data.name,
+            attributes: data.attributes,
+            first_mentioned_in_narration: narration_id,
+            last_mentioned_in_narration: narration_id,
+            confidence_score: data.confidence || 1.0,
+          })
+          .select()
+          .single();
+        elementId = created.id;
+      } else {
         await this.supabase
-            .from('ai_suggestions')
-            .update({
-                status: 'accepted',
-                confirmed_item_id: resultId
-            })
-            .eq('id', suggestionId);
+          .from("narrative_elements")
+          .update({ last_mentioned_in_narration: narration_id })
+          .eq("id", elementId);
+      }
 
-        return { success: true, id: resultId };
+      // 2. Log Mention (The Journey)
+      await this.supabase.from("entity_mentions").insert({
+        story_id,
+        element_id: elementId,
+        narration_id,
+        mention_context: data.mention_phrase,
+        emotional_state: {
+          current_emotion: data.attributes?.current_emotion,
+          sentiment_score: data.attributes?.sentiment_score,
+        },
+        importance_in_narration: (data.confidence || 1.0) * 10,
+      });
+      resultId = elementId;
+    } else if (type === "moment") {
+      // Resolve characters involved by name
+      const involvedNames = data.involved || [];
+      const { data: elements } = await this.supabase
+        .from("narrative_elements")
+        .select("id, name")
+        .eq("story_id", story_id)
+        .in("name", involvedNames);
+
+      const characterIds = elements?.map((e) => e.id) || [];
+
+      // Calculate position based on sequence if not provided
+      const { data: narration } = await this.supabase
+        .from("raw_narrations")
+        .select("sequence_number")
+        .eq("id", narration_id)
+        .single();
+
+      const position = (narration?.sequence_number || 0) / 100;
+
+      const { data: created } = await this.supabase
+        .from("story_moments")
+        .insert({
+          story_id,
+          title: data.title,
+          description: data.description,
+          timeline_position: Math.min(0.99, position),
+          created_from_narration: narration_id,
+          characters_involved: characterIds,
+          narrative_weight: data.importance || 5,
+        })
+        .select()
+        .single();
+      resultId = created.id;
+    } else if (type === "connection") {
+      const { data: elements } = await this.supabase
+        .from("narrative_elements")
+        .select("id, name")
+        .eq("story_id", story_id)
+        .in("name", [data.from, data.to]);
+
+      const fromEl = elements?.find((e) => e.name === data.from);
+      const toEl = elements?.find((e) => e.name === data.to);
+
+      if (fromEl && toEl) {
+        const { data: created } = await this.supabase
+          .from("narrative_connections")
+          .insert({
+            story_id,
+            from_id: fromEl.id,
+            to_id: toEl.id,
+            connection_type: data.type,
+            description: data.description,
+            created_from_narration: narration_id,
+          })
+          .select()
+          .single();
+        resultId = created.id;
+      }
     }
 
-    async revertElement(elementId: string, userId: string) {
-        // 1. Find the suggestion that created this element
-        const { data: suggestion } = await this.supabase
-            .from('ai_suggestions')
-            .select('id, story_id')
-            .eq('confirmed_item_id', elementId)
-            .single();
+    // Mark suggestion as accepted and link it to the confirmed item
+    await this.supabase
+      .from("ai_suggestions")
+      .update({
+        status: "accepted",
+        confirmed_item_id: resultId,
+      })
+      .eq("id", suggestionId);
 
-        if (!suggestion) throw new Error('No original suggestion found for this element');
-        await this.storiesService.getStoryById(suggestion.story_id, userId);
+    // Award XP based on complexity
+    let xpAmount = 20;
+    let xpReason = "Idea Confirmed";
 
-        // 2. Delete the confirmed element (cascades to mentions)
-        await this.supabase.from('narrative_elements').delete().eq('id', elementId);
-
-        // 3. Revert suggestion to pending
-        await this.supabase
-            .from('ai_suggestions')
-            .update({ status: 'pending', confirmed_item_id: null })
-            .eq('id', suggestion.id);
-
-        return { success: true };
+    if (type === "element") {
+      xpAmount = 50;
+      xpReason = `World Building: ${data.name}`;
+    } else if (type === "connection") {
+      xpAmount = 30;
+      xpReason = `Connection Forged`;
+    } else if (type === "moment") {
+      xpAmount = 25;
+      xpReason = `Timeline Event`;
     }
 
-    async revertMoment(momentId: string, userId: string) {
-        // 1. Find suggestion
-        const { data: suggestion } = await this.supabase
-            .from('ai_suggestions')
-            .select('id, story_id')
-            .eq('confirmed_item_id', momentId)
-            .single();
+    await this.gamificationService.awardXp(userId, xpAmount, xpReason);
 
-        if (!suggestion) throw new Error('No original suggestion found for this moment');
-        await this.storiesService.getStoryById(suggestion.story_id, userId);
+    return { success: true, id: resultId };
+  }
 
-        // 2. Delete moment
-        await this.supabase.from('story_moments').delete().eq('id', momentId);
+  async revertElement(elementId: string, userId: string) {
+    // 1. Find the suggestion that created this element
+    const { data: suggestion } = await this.supabase
+      .from("ai_suggestions")
+      .select("id, story_id")
+      .eq("confirmed_item_id", elementId)
+      .single();
 
-        // 3. Revert suggestion
-        await this.supabase
-            .from('ai_suggestions')
-            .update({ status: 'pending', confirmed_item_id: null })
-            .eq('id', suggestion.id);
+    if (!suggestion)
+      throw new Error("No original suggestion found for this element");
+    await this.storiesService.getStoryById(suggestion.story_id, userId);
 
-        return { success: true };
-    }
+    // 2. Delete the confirmed element (cascades to mentions)
+    await this.supabase.from("narrative_elements").delete().eq("id", elementId);
+
+    // 3. Revert suggestion to pending
+    await this.supabase
+      .from("ai_suggestions")
+      .update({ status: "pending", confirmed_item_id: null })
+      .eq("id", suggestion.id);
+
+    return { success: true };
+  }
+
+  async revertMoment(momentId: string, userId: string) {
+    // 1. Find suggestion
+    const { data: suggestion } = await this.supabase
+      .from("ai_suggestions")
+      .select("id, story_id")
+      .eq("confirmed_item_id", momentId)
+      .single();
+
+    if (!suggestion)
+      throw new Error("No original suggestion found for this moment");
+    await this.storiesService.getStoryById(suggestion.story_id, userId);
+
+    // 2. Delete moment
+    await this.supabase.from("story_moments").delete().eq("id", momentId);
+
+    // 3. Revert suggestion
+    await this.supabase
+      .from("ai_suggestions")
+      .update({ status: "pending", confirmed_item_id: null })
+      .eq("id", suggestion.id);
+
+    return { success: true };
+  }
 }

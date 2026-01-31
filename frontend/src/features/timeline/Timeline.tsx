@@ -3,9 +3,13 @@ import { useGetTimelineQuery } from '../../services/timeline';
 import { useParams } from 'react-router-dom';
 import { useUpdateMomentMutation, useDeleteMomentMutation } from '../../services/stories';
 import { useRevertMomentMutation } from '../../services/suggestions';
-import { Star, Trash2, RotateCcw, X, Check, Activity } from 'lucide-react';
+import { Star, Trash2, RotateCcw, X, Check, Activity, Clock } from 'lucide-react';
 
-export const Timeline: React.FC = () => {
+interface TimelineProps {
+    variant?: 'horizontal' | 'vertical';
+}
+
+export const Timeline: React.FC<TimelineProps> = ({ variant = 'horizontal' }) => {
     const { id } = useParams<{ id: string }>();
     const { data: moments, isLoading } = useGetTimelineQuery(id!);
     const [updateMoment] = useUpdateMomentMutation();
@@ -49,6 +53,96 @@ export const Timeline: React.FC = () => {
         await deleteMoment({ storyId: id!, momentId: editingMoment.id });
         setEditingMoment(null);
     };
+
+    if (variant === 'vertical') {
+        return (
+            <div className="flex flex-col gap-8 relative py-4">
+                <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-slate-100 -z-10" />
+                {moments?.map((m: any) => (
+                    <div
+                        key={m.id}
+                        onClick={() => startEditing(m)}
+                        className="flex gap-4 group cursor-pointer"
+                    >
+                        <div className={`mt-1.5 w-4 h-4 rounded-full border-4 border-white shrink-0 transition-all ${m.narrative_weight > 7 ? 'bg-indigo-600 scale-125' : 'bg-slate-300 group-hover:bg-indigo-400'}`} />
+                        <div className="flex flex-col gap-1">
+                            <h4 className="text-[11px] font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">{m.title}</h4>
+                            <p className="text-[10px] text-slate-400 font-medium line-clamp-2 leading-relaxed italic">{m.description || 'A key narrative beat...'}</p>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Editing Modal (Shared) */}
+                {renderModal()}
+            </div>
+        );
+    }
+
+    function renderModal() {
+        if (!editingMoment) return null;
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-indigo-500" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Correct Timeline Event</span>
+                        </div>
+                        <button onClick={() => setEditingMoment(null)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="p-8 space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Event Title</label>
+                            <input
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full text-lg font-bold text-slate-900 bg-slate-50 border-2 border-slate-50 rounded-2xl px-4 py-3 outline-none focus:border-indigo-100 focus:bg-white transition-all"
+                                placeholder="The inciting incident..."
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">AI Interpretation</label>
+                            <textarea
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                rows={4}
+                                className="w-full text-slate-600 text-sm leading-relaxed bg-slate-50 border-2 border-slate-50 rounded-2xl px-4 py-3 outline-none focus:border-indigo-100 focus:bg-white transition-all"
+                                placeholder="What actually happened in this moment?"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-2">
+                            <button
+                                onClick={handleSave}
+                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all"
+                            >
+                                <Check className="w-4 h-4" />
+                                Update Timeline
+                            </button>
+                            <button
+                                onClick={handleRevert}
+                                className="p-4 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-2xl transition-all"
+                                title="Revert to Draft"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                className="p-4 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-2xl transition-all"
+                                title="Delete Moment"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative py-12 px-4 overflow-x-auto scrollbar-hide">
@@ -96,69 +190,7 @@ export const Timeline: React.FC = () => {
                 </div>
             </div>
 
-            {/* Editing Modal */}
-            {editingMoment && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-b border-slate-100">
-                            <div className="flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-indigo-500" />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Correct Timeline Event</span>
-                            </div>
-                            <button onClick={() => setEditingMoment(null)} className="text-slate-400 hover:text-slate-600">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Event Title</label>
-                                <input
-                                    value={editTitle}
-                                    onChange={(e) => setEditTitle(e.target.value)}
-                                    className="w-full text-lg font-bold text-slate-900 bg-slate-50 border-2 border-slate-50 rounded-2xl px-4 py-3 outline-none focus:border-indigo-100 focus:bg-white transition-all"
-                                    placeholder="The inciting incident..."
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">AI Interpretation</label>
-                                <textarea
-                                    value={editDesc}
-                                    onChange={(e) => setEditDesc(e.target.value)}
-                                    rows={4}
-                                    className="w-full text-slate-600 text-sm leading-relaxed bg-slate-50 border-2 border-slate-50 rounded-2xl px-4 py-3 outline-none focus:border-indigo-100 focus:bg-white transition-all"
-                                    placeholder="What actually happened in this moment?"
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-3 pt-2">
-                                <button
-                                    onClick={handleSave}
-                                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all"
-                                >
-                                    <Check className="w-4 h-4" />
-                                    Update Timeline
-                                </button>
-                                <button
-                                    onClick={handleRevert}
-                                    className="p-4 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-2xl transition-all"
-                                    title="Revert to Draft"
-                                >
-                                    <RotateCcw className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="p-4 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-2xl transition-all"
-                                    title="Delete Moment"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {renderModal()}
         </div>
     );
 };

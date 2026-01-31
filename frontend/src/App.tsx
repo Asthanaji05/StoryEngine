@@ -3,6 +3,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { SignupPage } from './features/auth/SignupPage';
 import { Dashboard } from './features/stories/Dashboard';
 import { StorySession } from './features/narration/StorySession';
+import { ProfilePage } from './features/auth/ProfilePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         {/* Protected Stories Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/story/:id" element={<StorySession />} />
         </Route>
       </Routes>

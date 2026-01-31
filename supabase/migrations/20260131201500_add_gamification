@@ -1,0 +1,12 @@
+-- Add XP and Level to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1;
+
+-- Add a log for XP history (optional but good for gamification)
+CREATE TABLE IF NOT EXISTS xp_ledger (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    amount INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

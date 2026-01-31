@@ -25,6 +25,17 @@ export const storiesApi = baseApi.injectEndpoints({
             query: (id) => `/stories/${id}`,
             providesTags: (_result, _error, id) => [{ type: 'Story', id }],
         }),
+        updateStory: builder.mutation<Story, { id: string; updates: Partial<Story> }>({
+            query: ({ id, updates }) => ({
+                url: `/stories/${id}`,
+                method: 'PATCH',
+                body: updates,
+            }),
+            invalidatesTags: (_result, _error, { id }) => [{ type: 'Story', id }, 'Story'],
+        }),
+        brainstormOptions: builder.mutation<{ title: string; description: string }[], string>({
+            query: (id) => `/stories/${id}/brainstorm`,
+        }),
         getStoryElements: builder.query<any[], string>({
             query: (id) => `/stories/${id}/elements`,
             providesTags: (result) =>
@@ -83,6 +94,13 @@ export const storiesApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ['Moment'],
         }),
+        interviewCharacter: builder.mutation<string, { storyId: string; characterId: string; prompt: string }>({
+            query: ({ storyId, characterId, prompt }) => ({
+                url: `/stories/${storyId}/interview/${characterId}`,
+                method: 'POST',
+                body: { prompt },
+            }),
+        }),
     }),
 });
 
@@ -90,6 +108,8 @@ export const {
     useGetStoriesQuery,
     useCreateStoryMutation,
     useGetStoryByIdQuery,
+    useUpdateStoryMutation,
+    useBrainstormOptionsMutation,
     useGetStoryElementsQuery,
     useGetStoryTimelineQuery,
     useGetStoryConnectionsQuery,
@@ -98,4 +118,5 @@ export const {
     useDeleteElementMutation,
     useUpdateMomentMutation,
     useDeleteMomentMutation,
+    useInterviewCharacterMutation,
 } = storiesApi;
