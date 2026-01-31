@@ -45,4 +45,14 @@ export class StoriesController {
     async deleteStory(@Request() req, @Param('id') id: string) {
         return this.storiesService.deleteStory(id, req.user.sub);
     }
+
+    @Get(':id/elements')
+    async getElements(@Request() req, @Param('id') id: string) {
+        return this.storiesService.getStoryElements(id, req.user.sub);
+    }
+
+    @Get(':id/timeline')
+    async getTimeline(@Request() req, @Param('id') id: string) {
+        return this.storiesService.getStoryTimeline(id, req.user.sub);
+    }
 }

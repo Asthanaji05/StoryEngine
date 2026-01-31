@@ -74,4 +74,32 @@ export class StoriesService {
         if (error) throw error;
         return { success: true };
     }
+
+    async getStoryElements(storyId: string, userId: string) {
+        // First verify story ownership
+        await this.getStoryById(storyId, userId);
+
+        const { data, error } = await this.supabase
+            .from('narrative_elements')
+            .select('*')
+            .eq('story_id', storyId)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    }
+
+    async getStoryTimeline(storyId: string, userId: string) {
+        // First verify story ownership
+        await this.getStoryById(storyId, userId);
+
+        const { data, error } = await this.supabase
+            .from('story_moments')
+            .select('*')
+            .eq('story_id', storyId)
+            .order('timeline_position', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    }
 }
