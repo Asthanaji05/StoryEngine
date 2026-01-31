@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { useGetStoryConnectionsQuery, useGetStoryElementsQuery } from '../../services/stories';
 import { useParams } from 'react-router-dom';
@@ -8,6 +8,30 @@ export const NarrativeGraph: React.FC = () => {
     const { data: elements } = useGetStoryElementsQuery(id!);
     const { data: connections } = useGetStoryConnectionsQuery(id!);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+    // Handle responsiveness
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                setDimensions({
+                    width: containerRef.current.clientWidth,
+                    height: containerRef.current.clientHeight
+                });
+            }
+        };
+
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+
+        // Use a small timeout to ensure layout has settled
+        const timer = setTimeout(updateDimensions, 100);
+
+        return () => {
+            window.removeEventListener('resize', updateDimensions);
+            clearTimeout(timer);
+        };
+    }, []);
 
     const graphData = useMemo(() => {
         if (!elements || !connections) return { nodes: [], links: [] };
@@ -16,7 +40,7 @@ export const NarrativeGraph: React.FC = () => {
             id: el.id,
             name: el.name,
             type: el.element_type,
-            val: el.element_type === 'character' ? 5 : 3,
+            val: el.element_type === 'character' ? 8 : 5,
             color: el.element_type === 'character' ? '#6366f1' : el.element_type === 'organization' ? '#10b981' : '#f59e0b'
         }));
 
@@ -30,17 +54,21 @@ export const NarrativeGraph: React.FC = () => {
     }, [elements, connections]);
 
     return (
-        <div ref={containerRef} className="w-full h-[400px] bg-white rounded-3xl border border-slate-100 overflow-hidden relative group">
-            <div className="absolute top-6 left-6 z-10">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Narrative Intelligence Graph</h3>
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Characters</span>
+        <div ref={containerRef} className="flex-1 w-full h-full bg-white rounded-3xl border border-slate-100 overflow-hidden relative group shadow-inner shadow-slate-50">
+            <div className="absolute top-8 left-8 z-10 pointer-events-none">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 opacity-50">Narrative Intelligence Graph</h3>
+                <div className="flex gap-6 mt-2">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Characters</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Organizations</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Organizations</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-200" />
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Locations</span>
                     </div>
                 </div>
             </div>
@@ -48,34 +76,43 @@ export const NarrativeGraph: React.FC = () => {
             {graphData.nodes.length > 0 ? (
                 <ForceGraph2D
                     graphData={graphData}
-                    width={containerRef.current?.clientWidth || 800}
-                    height={400}
+                    width={dimensions.width}
+                    height={dimensions.height}
                     nodeLabel="name"
                     nodeRelSize={6}
-                    linkColor={() => '#e2e8f0'}
-                    linkDirectionalArrowLength={3}
+                    linkColor={() => '#f1f5f9'}
+                    linkDirectionalArrowLength={4}
                     linkDirectionalArrowRelPos={1}
+                    linkWidth={1.5}
+                    backgroundColor="#ffffff"
                     nodeCanvasObject={(node: any, ctx, globalScale) => {
                         const label = node.name;
-                        const fontSize = 12 / globalScale;
+                        const fontSize = 14 / globalScale;
                         ctx.font = `${fontSize}px Inter, sans-serif`;
-                        const textWidth = ctx.measureText(label).width;
-                        const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
 
+                        // Draw shadow/glow
+                        ctx.shadowColor = 'rgba(0,0,0,0.05)';
+                        ctx.shadowBlur = 4;
+
+                        // Draw Node dot
                         ctx.fillStyle = node.color;
                         ctx.beginPath();
-                        ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI, false);
+                        ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI, false);
                         ctx.fill();
 
+                        // Reset shadow
+                        ctx.shadowBlur = 0;
+
+                        // Draw Label
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillStyle = '#1e293b';
-                        ctx.fillText(label, node.x, node.y + 10);
+                        ctx.fillText(label, node.x, node.y + 12);
                     }}
                 />
             ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
-                    <p className="text-sm font-medium italic">Establishing narrative connections...</p>
+                    <p className="text-sm font-medium italic animate-pulse tracking-wide">Synthesizing narrative network...</p>
                 </div>
             )}
         </div>
