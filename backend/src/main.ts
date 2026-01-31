@@ -30,8 +30,6 @@ async function bootstrap() {
     app.use((req, res, next) => {
         if (req.path.startsWith('/api')) {
             const auth = req.headers.authorization;
-            console.log(`[Diagnostic] ${req.method} ${req.path}`);
-            console.log('Authorization Header:', auth ? 'Present' : 'MISSING');
             if (auth?.startsWith('Bearer ')) {
                 const token = auth.split(' ')[1];
                 try {
@@ -39,13 +37,8 @@ async function bootstrap() {
                     if (parts.length === 3) {
                         const header = JSON.parse(Buffer.from(parts[0], 'base64').toString());
                         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-                        console.log('Token Header:', JSON.stringify(header));
-                        console.log('Token Payload Subject (sub):', payload.sub);
-                        console.log('Token Payload Audience (aud):', payload.aud);
-                        console.log('Token Payload Issuer (iss):', payload.iss);
                     }
                 } catch (e) {
-                    console.log('Token decoding failed:', e.message);
                 }
             }
         }
@@ -58,7 +51,6 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     await app.listen(port);
 
-    console.log(`🚀 Story Engine Backend is running on: http://localhost:${port}/api`);
 }
 
 bootstrap();

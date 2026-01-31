@@ -1,0 +1,44 @@
+{
+    "name": "story-engine",
+    "version": "0.1.0",
+    "description": "Narrative Intelligence Platform - Build stories through natural narration",
+    "private": true,
+    "workspaces": [
+        "backend",
+        "frontend"
+    ],
+    "scripts": {
+        "dev": "npm-run-all --parallel dev:*",
+        "dev:backend": "npm run dev --workspace=backend",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "build": "npm-run-all build:*",
+        "build:backend": "npm run build --workspace=backend",
+        "build:frontend": "npm run build --workspace=frontend",
+        "test": "npm-run-all test:*",
+        "test:backend": "npm run test --workspace=backend",
+        "test:frontend": "npm run test --workspace=frontend",
+        "clean": "npm-run-all clean:*",
+        "clean:backend": "npm run clean --workspace=backend",
+        "clean:frontend": "npm run clean --workspace=frontend"
+    },
+    "devDependencies": {
+        "npm-run-all": "^4.1.5"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Asthanaji05/StoryEngine.git"
+    },
+    "keywords": [
+        "storytelling",
+        "ai",
+        "narrative",
+        "writing",
+        "gemini"
+    ],
+    "author": "",
+    "license": "MIT"
+}

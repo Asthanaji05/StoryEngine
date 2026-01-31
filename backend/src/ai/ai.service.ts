@@ -15,7 +15,7 @@ export class AiService {
     }
 
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' }, { apiVersion: 'v1beta' });
   }
 
   /**
@@ -25,15 +25,25 @@ export class AiService {
     const prompt = this.buildExtractionPrompt(narration, context);
 
     try {
+      console.log('[AiService] Extracting elements for:', narration.substring(0, 50) + '...');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
+      let text = response.text();
+
+      console.log('[AiService] Raw extraction response:', text);
+
+      // Clean up markdown formatting if present
+      if (text.includes('```json')) {
+        text = text.split('```json')[1].split('```')[0];
+      } else if (text.includes('```')) {
+        text = text.split('```')[1].split('```')[0];
+      }
 
       // Parse JSON response
-      return JSON.parse(text);
+      return JSON.parse(text.trim());
     } catch (error) {
-      console.error('Error extracting narrative elements:', error);
-      throw new Error('Failed to extract narrative elements');
+      console.error('[AiService] Error extracting narrative elements:', error);
+      throw new Error(`Failed to extract narrative elements: ${error.message}`);
     }
   }
 
@@ -117,25 +127,29 @@ Rules:
    * Generate intelligent response as narrative listener
    */
   async generateListenerResponse(narration: string, context?: any): Promise<string> {
-    const prompt = `You are an empathetic story listener. A creator just told you this in their story:
+    const prompt = `You are an empathetic, hyper-intelligent story listener. A creator just told you this:
 
 "${narration}"
 
-${context ? `Story context: ${JSON.stringify(context)}` : ''}
+${context ? `Recent Story Events: ${JSON.stringify(context)}` : ''}
 
-Respond in 1-2 sentences as a supportive listener who:
-- Reflects their narrative intent
-- Shows you understand the emotional weight
-- Never suggests what should happen next (that's their story)
+Respond in 1-2 sentences as a supportive consciousness that:
+- Acknowledges new characters or entities introduced.
+- Reflects the emotional weight and narrative significance.
+- Keeps the focus on the creator's vision.
+- Tone: Encouraging, insightful, slightly mysterious but deeply attentive.
 
 Your response:`;
 
     try {
+      console.log('[AiService] Generating listener response for:', narration.substring(0, 50) + '...');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      return response.text();
+      const text = response.text();
+      console.log('[AiService] Listener response:', text);
+      return text;
     } catch (error) {
-      console.error('Error generating listener response:', error);
+      console.error('[AiService] Error generating listener response:', error);
       return 'I hear you. Tell me more.';
     }
   }

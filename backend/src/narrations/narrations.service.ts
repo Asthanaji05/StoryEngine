@@ -27,46 +27,43 @@ export class NarrationsService {
 
         const sequenceNumber = lastNarration ? lastNarration.sequence_number + 1 : 0;
 
-        // Store raw narration
+        let extracted: any = null;
+        let listenerResponse: string = 'I hear you. Tell me more.';
+
+        // Extract narrative elements and generate listener response using AI
+        try {
+            extracted = await this.aiService.extractNarrativeElements(content);
+            listenerResponse = await this.aiService.generateListenerResponse(content);
+        } catch (error) {
+            console.error('AI processing failed:', error);
+        }
+
+        // Store raw narration and AI understanding
         const { data: narration, error } = await this.supabase
             .from('raw_narrations')
             .insert({
                 story_id: storyId,
                 content,
                 sequence_number: sequenceNumber,
+                listener_response: listenerResponse,
+                extracted: extracted || {},
             })
             .select()
             .single();
 
         if (error) throw error;
 
-        // Extract narrative elements using AI
-        try {
-            const extracted = await this.aiService.extractNarrativeElements(content);
-
-            // Store extracted elements
+        // Store extracted elements in their respective tables
+        if (extracted) {
             await this.storeNarrativeElements(storyId, narration.id, extracted);
-
-            // Generate listener response
-            const listenerResponse = await this.aiService.generateListenerResponse(content);
-
-            return {
-                narration,
-                extracted,
-                listener_response: listenerResponse,
-                status: 'understood'
-            };
-        } catch (error) {
-            console.error('AI extraction failed:', error);
-            // Return narration even if AI fails
-            return {
-                narration,
-                extracted: null,
-                listener_response: 'I hear you. Tell me more.',
-                error: 'AI processing failed',
-                status: 'raw'
-            };
         }
+
+        return {
+            narration,
+            extracted,
+            listener_response: listenerResponse,
+            status: extracted ? 'understood' : 'raw'
+        };
     }
 
     private async storeNarrativeElements(storyId: string, narrationId: string, extracted: any) {
@@ -116,15 +113,23 @@ export class NarrationsService {
 
         // Store events
         if (extracted.events?.length > 0) {
+            // Get total narration count to estimate position
+            const { count } = await this.supabase
+                .from('raw_narrations')
+                .select('*', { count: 'exact', head: true })
+                .eq('story_id', storyId);
+
+            const basePosition = Math.min(0.9, (count || 1) / 100);
+
             const events = extracted.events.map((event: any, index: number) => ({
                 story_id: storyId,
                 title: event.title,
                 description: event.description,
-                timeline_position: (index + 1) / (extracted.events.length + 1), // Simple positioning
+                timeline_position: Math.min(0.99, basePosition + (index * 0.01)),
                 created_from_narration: narrationId,
                 characters_involved: event.characters_involved || [],
-                emotional_signature: { [event.emotional_tone]: event.importance },
-                narrative_weight: event.importance,
+                emotional_signature: { [event.emotional_tone || 'neutral']: event.importance || 5 },
+                narrative_weight: event.importance || 5,
             }));
             promises.push(this.supabase.from('story_moments').insert(events));
         }

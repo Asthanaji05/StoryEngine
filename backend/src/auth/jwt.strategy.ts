@@ -10,9 +10,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const supabaseUrl = configService.get<string>('SUPABASE_URL');
         const jwksUrl = `${supabaseUrl}/auth/v1/.well-known/jwks.json`;
 
-        console.log('--- AUTH DIAGNOSTICS ---');
-        console.log('JWKS URL:', jwksUrl);
-        console.log('--- END DIAGNOSTICS ---');
 
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -30,7 +27,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: any) {
-        console.log('Validating JWT payload:', payload.sub ? 'Valid Sub found' : 'No Sub found');
         if (!payload.sub) {
             throw new UnauthorizedException('Invalid token payload: missing sub');
         }

@@ -25,11 +25,27 @@ export const storiesApi = baseApi.injectEndpoints({
             query: (id) => `/stories/${id}`,
             providesTags: (_result, _error, id) => [{ type: 'Story', id }],
         }),
+        getStoryElements: builder.query<any[], string>({
+            query: (id) => `/stories/${id}/elements`,
+            providesTags: (result) =>
+                result
+                    ? [...result.map(({ id }) => ({ type: 'Element' as const, id })), 'Element']
+                    : ['Element'],
+        }),
+        getStoryTimeline: builder.query<any[], string>({
+            query: (id) => `/stories/${id}/timeline`,
+            providesTags: (result) =>
+                result
+                    ? [...result.map(({ id }) => ({ type: 'Moment' as const, id })), 'Moment']
+                    : ['Moment'],
+        }),
     }),
 });
 
 export const {
     useGetStoriesQuery,
     useCreateStoryMutation,
-    useGetStoryByIdQuery
+    useGetStoryByIdQuery,
+    useGetStoryElementsQuery,
+    useGetStoryTimelineQuery,
 } = storiesApi;
