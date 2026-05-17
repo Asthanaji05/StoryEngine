@@ -235,22 +235,27 @@ export class StoriesService {
     );
   }
 
-  async mergeEntities(storyId: string, userId: string, sourceId: string, targetId: string) {
+  async mergeEntities(
+    storyId: string,
+    userId: string,
+    sourceId: string,
+    targetId: string,
+  ) {
     if (sourceId === targetId) return; // Cannot merge into self
 
     await this.getStoryById(storyId, userId);
 
     // 1. Move Mentions
     await this.supabase
-      .from('entity_mentions')
+      .from("entity_mentions")
       .update({ element_id: targetId })
-      .eq('element_id', sourceId);
+      .eq("element_id", sourceId);
 
     // 2. Update Moments (characters_involved Array)
     const { data: moments } = await this.supabase
-      .from('story_moments')
-      .select('id, characters_involved')
-      .contains('characters_involved', [sourceId]);
+      .from("story_moments")
+      .select("id, characters_involved")
+      .contains("characters_involved", [sourceId]);
 
     if (moments) {
       for (const m of moments) {
@@ -258,68 +263,77 @@ export class StoriesService {
         newIds.delete(sourceId);
         newIds.add(targetId);
         await this.supabase
-          .from('story_moments')
+          .from("story_moments")
           .update({ characters_involved: Array.from(newIds) })
-          .eq('id', m.id);
+          .eq("id", m.id);
       }
     }
 
     // 3. Update Connections (From)
     const { data: fromConns } = await this.supabase
-      .from('narrative_connections')
-      .select('*')
-      .eq('from_id', sourceId);
+      .from("narrative_connections")
+      .select("*")
+      .eq("from_id", sourceId);
 
     if (fromConns) {
       for (const conn of fromConns) {
         const { data: existing } = await this.supabase
-          .from('narrative_connections')
-          .select('id')
-          .eq('from_id', targetId)
-          .eq('to_id', conn.to_id)
+          .from("narrative_connections")
+          .select("id")
+          .eq("from_id", targetId)
+          .eq("to_id", conn.to_id)
           .single();
 
         if (existing) {
-          await this.supabase.from('narrative_connections').delete().eq('id', conn.id);
+          await this.supabase
+            .from("narrative_connections")
+            .delete()
+            .eq("id", conn.id);
         } else {
-          await this.supabase.from('narrative_connections').update({ from_id: targetId }).eq('id', conn.id);
+          await this.supabase
+            .from("narrative_connections")
+            .update({ from_id: targetId })
+            .eq("id", conn.id);
         }
       }
     }
 
     // 4. Update Connections (To)
     const { data: toConns } = await this.supabase
-      .from('narrative_connections')
-      .select('*')
-      .eq('to_id', sourceId);
+      .from("narrative_connections")
+      .select("*")
+      .eq("to_id", sourceId);
 
     if (toConns) {
       for (const conn of toConns) {
         const { data: existing } = await this.supabase
-          .from('narrative_connections')
-          .select('id')
-          .eq('from_id', conn.from_id)
-          .eq('to_id', targetId)
+          .from("narrative_connections")
+          .select("id")
+          .eq("from_id", conn.from_id)
+          .eq("to_id", targetId)
           .single();
 
         if (existing) {
-          await this.supabase.from('narrative_connections').delete().eq('id', conn.id);
+          await this.supabase
+            .from("narrative_connections")
+            .delete()
+            .eq("id", conn.id);
         } else {
-          await this.supabase.from('narrative_connections').update({ to_id: targetId }).eq('id', conn.id);
+          await this.supabase
+            .from("narrative_connections")
+            .update({ to_id: targetId })
+            .eq("id", conn.id);
         }
       }
     }
 
     // 5. Update Suggestions & Delete Source
     await this.supabase
-      .from('ai_suggestions')
+      .from("ai_suggestions")
       .update({ confirmed_item_id: targetId })
-      .eq('confirmed_item_id', sourceId);
+      .eq("confirmed_item_id", sourceId);
 
-    await this.supabase
-      .from('narrative_elements')
-      .delete()
-      .eq('id', sourceId);
+    await this.supabase.from("narrative_elements").delete().eq("id", sourceId);
 
     return { success: true };
   }

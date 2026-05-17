@@ -1,6 +1,85 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+// --- Zod Schemas ---
+
+const AttributeSchema = z.object({
+  description: z
+    .string()
+    .optional()
+    .describe("Physical or personality description"),
+  traits: z.array(z.string()).optional().describe("Key personality traits"),
+  current_emotion: z
+    .string()
+    .optional()
+    .describe("Emotion shown in this specific narration"),
+  sentiment_score: z
+    .number()
+    .min(-10)
+    .max(10)
+    .optional()
+    .describe("Sentiment analysis score"),
+  type: z.string().optional().describe("Type of location/org if applicable"),
+});
+
+const CharacterSchema = z.object({
+  name: z.string().describe("The resolved full name of the character."),
+  mention_phrase: z
+    .string()
+    .describe("The exact phrase used to refer to them."),
+  attributes: AttributeSchema,
+  confidence: z.number().min(0).max(1).describe("Confidence score 0.0-1.0"),
+});
+
+const SimpleElementSchema = z.object({
+  name: z.string().describe("The resolved full name."),
+  mention_phrase: z.string().describe("The exact phrase used."),
+  attributes: AttributeSchema,
+  confidence: z.number().min(0).max(1).describe("Confidence score 0.0-1.0"),
+});
+
+const EventSchema = z.object({
+  title: z.string().describe("Short title for the event"),
+  description: z.string().describe("Detailed significance of the event"),
+  characters_involved: z
+    .array(z.string())
+    .describe("Names of characters involved"),
+  location: z.string().optional().describe("Location name where it happened"),
+  emotional_tone: z.string().describe("e.g. Hopeful, Tense, Tragic"),
+  importance: z.number().min(1).max(10).describe("Narrative weight 1-10"),
+  is_turning_point: z
+    .boolean()
+    .describe("If this changes the story significantly"),
+});
+
+const ConnectionSchema = z.object({
+  from: z.string().describe("Source entity name"),
+  to: z.string().describe("Target entity name"),
+  type: z.string().describe("Nature of connection (e.g. loves, hates)"),
+  weight: z.number().min(1).max(10).describe("Strength 1-10"),
+  emotional_charge: z
+    .number()
+    .min(-10)
+    .max(10)
+    .describe("Positive/Negative charge"),
+  description: z.string().describe("Reason for the connection"),
+});
+
+const AnalysisSchema = z.object({
+  extracted: z.object({
+    characters: z.array(CharacterSchema).default([]),
+    locations: z.array(SimpleElementSchema).default([]),
+    organizations: z.array(SimpleElementSchema).default([]),
+    events: z.array(EventSchema).default([]),
+    connections: z.array(ConnectionSchema).default([]),
+  }),
+  listener_response: z
+    .string()
+    .describe("Empathetic 1-sentence listener response"),
+});
 
 @Injectable()
 export class AiService {
@@ -15,6 +94,7 @@ export class AiService {
     }
 
     this.genAI = new GoogleGenerativeAI(apiKey);
+    // Use the latest model that supports structured output well
     this.model = this.genAI.getGenerativeModel(
       { model: "gemini-2.0-flash-lite" },
       { apiVersion: "v1beta" },
@@ -22,156 +102,93 @@ export class AiService {
   }
 
   /**
-   * Extract narrative elements from narration text
+   * Analyze narration to extract elements and generate a response in a single pass.
    */
-  async extractNarrativeElements(narration: string, context?: any) {
-    const prompt = this.buildExtractionPrompt(narration, context);
-
-    try {
-      console.log(
-        "[AiService] Extracting elements for:",
-        narration.substring(0, 50) + "...",
-      );
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      console.log("[AiService] Raw extraction response:", text);
-
-      // Clean up markdown formatting if present
-      if (text.includes("```json")) {
-        text = text.split("```json")[1].split("```")[0];
-      } else if (text.includes("```")) {
-        text = text.split("```")[1].split("```")[0];
-      }
-
-      // Parse JSON response
-      return JSON.parse(text.trim());
-    } catch (error) {
-      console.error("[AiService] Error extracting narrative elements:", error);
-      throw new Error(`Failed to extract narrative elements: ${error.message}`);
-    }
-  }
-
-  /**
-   * Build prompt for entity extraction with context-aware resolution
-   */
-  private buildExtractionPrompt(narration: string, context?: any): string {
+  async analyzeNarration(narration: string, context?: any) {
     const existingEntities =
       context?.entities?.length > 0
-        ? `Existing Story Entities (Use these for resolution/aliasing): ${context.entities.join(", ")}`
+        ? `Existing Story Entities: ${context.entities.join(", ")}`
         : "No existing entities yet.";
 
-    return `You are a hyper-competent Narrative Intelligence Engine. Your goal is to understand a creator's story as they narrate it naturally.
+    const prompt = `You are a hyper-competent Narrative Intelligence Engine. 
+    
+    TASK: Analyze the narration and extract key narrative components (characters, locations, events, connections).
+    Also generate a brief, empathetic 1-sentence "listener_response" acknowledging the developments.
 
-Narration Snippet: "${narration}"
+    Narration: "${narration}"
+    ${existingEntities}
+    ${context?.recentEvents ? `Recent Story Events: ${JSON.stringify(context.recentEvents)}` : ""}
 
-${existingEntities}
-${context?.recentEvents ? `Recent Story Events: ${JSON.stringify(context.recentEvents)}` : ""}
-
-CRITICAL TASK:
-Analyze the narration and extract key narrative components. 
-
-ENTITY RESOLUTION RULES:
-1. If a character/location/org is mentioned by a partial name (e.g., "Virat") but matches an existing entity ("Virat Asthana"), map it to the EXACT existing name.
-2. DO NOT create duplicate entities if they refer to the same person/place.
-3. If an entity is new, provide its full, formal name if implied.
-
-Extract and return ONLY a valid JSON object:
-{
-  "characters": [
-    {
-      "name": "EXACT match from existing or full new name",
-      "mention_phrase": "the specific snippet describing them here",
-      "attributes": {
-        "description": "brief physical/personality description",
-        "traits": ["trait1", "trait2"],
-        "current_emotion": "hope/dread/etc",
-        "sentiment_score": -10 to +10
-      },
-      "confidence": 0.0-1.0
-    }
-  ],
-  "locations": [
-    {
-      "name": "EXACT match or full name",
-      "mention_phrase": "snippet",
-      "attributes": { "description": "vibe", "type": "city/room/etc" },
-      "confidence": 0.0-1.0
-    }
-  ],
-  "organizations": [
-    {
-      "name": "EXACT match or full name",
-      "mention_phrase": "snippet",
-      "attributes": { "type": "group/etc", "description": "vibe" },
-      "confidence": 0.0-1.0
-    }
-  ],
-  "events": [
-    {
-      "title": "Short title",
-      "description": "Detailed narrative significance",
-      "characters_involved": ["names - MUST MATCH RESOLVED NAMES"],
-      "location": "name",
-      "emotional_tone": "hope/dread/joy/etc",
-      "importance": 1-10,
-      "is_turning_point": boolean
-    }
-  ],
-  "connections": [
-    {
-      "from": "Resolved Name A",
-      "to": "Resolved Name B",
-      "type": "founded/loves/hates/member_of/rivals/located_at",
-      "weight": 1-10,
-      "emotional_charge": -10 to +10,
-      "description": "reason"
-    }
-  ]
-}
-
-Rules:
-1. DO NOT invent information not present or strongly implied.
-2. Return ONLY JSON. No preamble.`;
-  }
-
-  /**
-   * Generate intelligent response as narrative listener
-   */
-  async generateListenerResponse(
-    narration: string,
-    context?: any,
-  ): Promise<string> {
-    const prompt = `You are an empathetic, hyper-intelligent story listener. A creator just told you this:
-
-"${narration}"
-
-${context ? `Recent Story Events: ${JSON.stringify(context)}` : ""}
-
-Respond in 1-2 sentences as a supportive consciousness that:
-- Acknowledges new characters or entities introduced.
-- Reflects the emotional weight and narrative significance.
-- Keeps the focus on the creator's vision.
-- Tone: Encouraging, insightful, slightly mysterious but deeply attentive.
-
-Your response:`;
+    CRITICAL: 
+    1. If a character/location matches an existing entity name, use that EXACT name.
+    2. Do not invent details not present in the text.
+    `;
 
     try {
-      console.log(
-        "[AiService] Generating listener response for:",
-        narration.substring(0, 50) + "...",
-      );
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      console.log("[AiService] Listener response:", text);
-      return text;
+      console.log("[AiService] Analyzing narration with Structured Output...");
+
+      const jsonSchema = zodToJsonSchema(AnalysisSchema as any, {
+        $refStrategy: "none",
+      });
+      // Helper to clean schema for Gemini
+      const cleanSchema = (schema: any) => {
+        if (!schema || typeof schema !== "object") return;
+        delete schema.$schema;
+        delete schema.additionalProperties;
+
+        // Recursively clean children
+        if (schema.properties) {
+          Object.values(schema.properties).forEach(cleanSchema);
+        }
+        if (schema.items) {
+          cleanSchema(schema.items);
+        }
+        if (schema.anyOf) {
+          schema.anyOf.forEach(cleanSchema);
+        }
+        if (schema.allOf) {
+          schema.allOf.forEach(cleanSchema);
+        }
+        if (schema.oneOf) {
+          schema.oneOf.forEach(cleanSchema);
+        }
+      };
+
+      cleanSchema(jsonSchema);
+
+      const result = await this.model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: jsonSchema,
+        },
+      });
+
+      const responseText = result.response.text();
+      // Ensure we parse and validate with Zod to be safe
+      const parsed = AnalysisSchema.parse(JSON.parse(responseText));
+
+      return parsed;
     } catch (error) {
-      console.error("[AiService] Error generating listener response:", error);
-      return "I hear you. Tell me more.";
+      console.error("[AiService] Analysis failed:", error);
+      // Fallback for safety
+      return {
+        extracted: {
+          characters: [],
+          locations: [],
+          organizations: [],
+          events: [],
+          connections: [],
+        },
+        listener_response: "I'm listening. Please continue.",
+      };
     }
   }
+
+  // ... (Keep existing extraction logic for backwards compatibility if needed, but analyzeNarration replaces it) ...
+  // Keeping simulateCharacterDialogue and brainstorm as they are distinct interactions,
+  // though they could also be upgraded to schemas later.
+
   /**
    * Brainstorm story title and description options based on context
    */
@@ -187,29 +204,23 @@ Return ONLY a valid JSON array of objects:
   { "title": "Option 1 Title", "description": "Evocative summary" },
   { "title": "Option 2 Title", "description": "Evocative summary" },
   { "title": "Option 3 Title", "description": "Evocative summary" }
-]
-
-Rules:
-1. Make them distinct (e.g., one Noir, one Operatic, one Intimate).
-2. Return ONLY JSON.`;
+]`;
 
     try {
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      if (text.includes("```json")) {
-        text = text.split("```json")[1].split("```")[0];
-      } else if (text.includes("```")) {
-        text = text.split("```")[1].split("```")[0];
-      }
-
-      return JSON.parse(text.trim());
+      const text = result.response.text();
+      // Simple clean for now
+      const clean = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+      return JSON.parse(clean);
     } catch (error) {
       console.error("[AiService] Error brainstorming theme:", error);
       return [];
     }
   }
+
   /**
    * Simulate a conversation with a specific character
    */
@@ -229,19 +240,17 @@ The creator (User) asks you: "${userPrompt}"
 
 CRITICAL RULE:
 1. Speak ONLY as this character. Use their voice, slang, world-view, and limitations.
-2. Do not break character. Do not be an assistant.
-3. Keep it brief (2-3 sentences max) unless aksed to elaborate.
-4. If the user asks about something you shouldn't know, express confusion or suspicion.
+2. Keep it brief (2-3 sentences max).
+3. If the user asks about something you shouldn't know, express confusion.
 
 Your Response:`;
 
     try {
       const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      return result.response.text();
     } catch (error) {
       console.error("[AiService] Error simulating dialogue:", error);
-      return `[${characterName} looks at you silently, unable to find the words.]`;
+      return `[${characterName} looks at you silently.]`;
     }
   }
 }

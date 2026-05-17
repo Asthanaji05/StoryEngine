@@ -42,12 +42,13 @@ export class NarrationsService {
     let extracted: any = null;
     let listenerResponse: string = "I hear you. Tell me more.";
 
-    // Extract narrative elements and generate listener response
+    // Single AI call for both extraction and response
     try {
-      extracted = await this.aiService.extractNarrativeElements(content, {
+      const analysis = await this.aiService.analyzeNarration(content, {
         entities: existingNames,
       });
-      listenerResponse = await this.aiService.generateListenerResponse(content);
+      extracted = analysis.extracted;
+      listenerResponse = analysis.listener_response;
     } catch (error) {
       console.error("AI processing failed:", error);
     }

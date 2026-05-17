@@ -15,7 +15,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 @Controller("stories")
 @UseGuards(JwtAuthGuard)
 export class StoriesController {
-  constructor(private storiesService: StoriesService) { }
+  constructor(private storiesService: StoriesService) {}
 
   @Post()
   async create(@Request() req, @Body() body: { title?: string }) {
